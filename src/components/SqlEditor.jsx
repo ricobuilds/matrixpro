@@ -6,18 +6,29 @@ import s from './SqlEditor.module.css'
 
 const isElectron = !!window.MP
 
-// ─── sql.js singleton loader (dynamic import avoids Vite ESM issues) ─────────
+// ─── sql.js loader via script tag (UMD bundle sets window.initSqlJs) ────────
 let sqlPromise = null
 function getSql () {
   if (!sqlPromise) {
-    sqlPromise = import('sql.js').then(m => {
-      const initSqlJs = m.default ?? m
-      return initSqlJs({
-        locateFile: file =>
-          isElectron && window.MP?.resourcesPath
-            ? `file://${window.MP.resourcesPath}/${file}`
-            : `/${file}`,
-      })
+    sqlPromise = new Promise((resolve, reject) => {
+      const init = () => {
+        if (typeof window.initSqlJs !== 'function') {
+          reject(new Error('initSqlJs not found after script load'))
+          return
+        }
+        window.initSqlJs({
+          locateFile: () =>
+            isElectron && window.MP?.resourcesPath
+              ? `file://${window.MP.resourcesPath}/sql-wasm.wasm`
+              : '/sql-wasm.wasm',
+        }).then(resolve).catch(reject)
+      }
+      if (typeof window.initSqlJs === 'function') { init(); return }
+      const script = document.createElement('script')
+      script.src = '/sql-wasm.js'
+      script.onload  = init
+      script.onerror = () => reject(new Error('Failed to load sql-wasm.js'))
+      document.head.appendChild(script)
     })
   }
   return sqlPromise

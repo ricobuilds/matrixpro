@@ -33,17 +33,51 @@ function applyAgg (vals, fn) {
   }
 }
 
+// ─── Y2 dataset helper ────────────────────────────────────────────────────────
+// Bar primary  → Y2 renders as a line overlay
+// Line/Area    → Y2 renders as a bar underlay
+function makeY2Dataset (label, data, primaryIsBar, pal, tension) {
+  if (primaryIsBar) {
+    return {
+      label,
+      type: 'line',
+      yAxisID: 'y2',
+      order: 0,            // draw on top of bars
+      data,
+      borderColor: pal[1],
+      backgroundColor: pal[1] + '20',
+      borderWidth: 2,
+      tension,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      fill: false,
+    }
+  }
+  return {
+    label,
+    type: 'bar',
+    yAxisID: 'y2',
+    order: 1,
+    data,
+    backgroundColor: pal[1] + 'cc',
+    borderColor: pal[1],
+    borderWidth: 0,
+  }
+}
+
 // ─── Build chart datasets ─────────────────────────────────────────────────────
-function buildChartData ({ ds, xCol, yCol, y2Col, szCol, ct, pal, filters, sortCol, sortDir, aggFn = 'sum' }) {
+function buildChartData ({ ds, xCol, yCol, y2Col, szCol, ct, pal, filters, aggFn = 'sum', smoothCurves = true }) {
   if (!xCol || !yCol) return null
 
   const allRows = Object.values(filters).reduce((acc, fn) => acc.filter(fn), ds.rows)
-  const rows = allRows.slice(0, 500)
-  const isXnum = rows.slice(0, 20).every(r => !isNaN(parseFloat(r[xCol])))
-  const isLine = ct === 'line', isArea = ct === 'area'
-  const isBar = ct === 'bar', isStacked = ct === 'bar-stacked'
-  const isScatter = ct === 'scatter', isBubble = ct === 'bubble'
-  const isDoughnut = ct === 'doughnut', isRadar = ct === 'radar', isPolar = ct === 'polar'
+  const rows    = allRows.slice(0, 500)
+  const isXnum  = rows.slice(0, 20).every(r => !isNaN(parseFloat(r[xCol])))
+  const isLine  = ct === 'line', isArea = ct === 'area'
+  const isBar   = ct === 'bar',  isStacked = ct === 'bar-stacked'
+  const isBarType = isBar || isStacked
+  const isScatter  = ct === 'scatter', isBubble = ct === 'bubble'
+  const isDoughnut = ct === 'doughnut', isRadar  = ct === 'radar', isPolar = ct === 'polar'
+  const tension = smoothCurves ? 0.4 : 0
 
   let labels = [], datasets = []
 
@@ -76,7 +110,7 @@ function buildChartData ({ ds, xCol, yCol, y2Col, szCol, ct, pal, filters, sortC
       label: yCol,
       data: keys.map(k => +applyAgg(agg[k], aggFn).toFixed(2)),
       backgroundColor: keys.map((_, i) => pal[i % pal.length] + 'cc'),
-      borderColor: keys.map((_, i) => pal[i % pal.length]),
+      borderColor:     keys.map((_, i) => pal[i % pal.length]),
       borderWidth: 1.5,
       hoverOffset: 6,
     }]
@@ -115,15 +149,20 @@ function buildChartData ({ ds, xCol, yCol, y2Col, szCol, ct, pal, filters, sortC
           data: labSet.map(l => +applyAgg(agg[l], aggFn).toFixed(2)),
           backgroundColor: pal[gi % pal.length] + 'cc',
           borderWidth: 0,
+          yAxisID: y2Col ? 'y' : undefined,
         }
       })
     } else {
-      // fallback plain bar
-      const agg = {}
+      // fallback: plain stacked bar
+      const agg = {}, agg2 = {}
       rows.forEach(r => {
         const k = String(r[xCol])
-        if (!agg[k]) agg[k] = []
+        if (!agg[k])  agg[k]  = []
         agg[k].push(parseFloat(r[yCol]) || 0)
+        if (y2Col) {
+          if (!agg2[k]) agg2[k] = []
+          agg2[k].push(parseFloat(r[y2Col]) || 0)
+        }
       })
       labels = Object.keys(agg).slice(0, 24)
       datasets = [{
@@ -131,13 +170,18 @@ function buildChartData ({ ds, xCol, yCol, y2Col, szCol, ct, pal, filters, sortC
         data: labels.map(k => +applyAgg(agg[k], aggFn).toFixed(2)),
         backgroundColor: labels.map((_, i) => pal[i % pal.length] + 'cc'),
         borderWidth: 0,
+        yAxisID: y2Col ? 'y' : undefined,
       }]
+      if (y2Col) {
+        datasets.push(makeY2Dataset(y2Col, labels.map(k => +applyAgg(agg2[k] || [], aggFn).toFixed(2)), true, pal, tension))
+      }
     }
   } else if (!isXnum) {
+    // bar, line, area — categorical X
     const agg = {}, agg2 = {}
     rows.forEach(r => {
       const k = String(r[xCol])
-      if (!agg[k]) agg[k] = []
+      if (!agg[k])  agg[k]  = []
       agg[k].push(parseFloat(r[yCol]) || 0)
       if (y2Col) {
         if (!agg2[k]) agg2[k] = []
@@ -146,43 +190,45 @@ function buildChartData ({ ds, xCol, yCol, y2Col, szCol, ct, pal, filters, sortC
     })
     labels = Object.keys(agg).slice(0, 28)
     const data = labels.map(k => +applyAgg(agg[k], aggFn).toFixed(2))
+
     datasets = [{
       label: yCol, data,
-      backgroundColor: (isLine || isArea) ? pal[0] + '20' : labels.map((_, i) => pal[i % pal.length] + 'cc'),
+      yAxisID: y2Col ? 'y' : undefined,
+      backgroundColor: isBarType
+        ? labels.map((_, i) => pal[i % pal.length] + 'cc')
+        : pal[0] + '20',
       borderColor: pal[0],
-      borderWidth: (isLine || isArea) ? 2.5 : 0,
-      tension: 0.4,
+      borderWidth: isBarType ? 0 : 2.5,
+      tension,
       fill: isArea ? 'origin' : false,
-      pointRadius: (isLine || isArea) ? 3 : 0,
+      pointRadius: isBarType ? 0 : 3,
       pointHoverRadius: 5,
     }]
+
     if (y2Col) {
-      datasets.push({
-        label: y2Col,
-        data: labels.map(k => +applyAgg(agg2[k] || [], aggFn).toFixed(2)),
-        backgroundColor: pal[1] + 'cc',
-        borderColor: pal[1],
-        borderWidth: (isLine || isArea) ? 2 : 0,
-        tension: 0.4,
-        fill: isArea ? 'origin' : false,
-        pointRadius: (isLine || isArea) ? 3 : 0,
-        type: (isBar || isStacked) ? 'line' : 'bar',
-        yAxisID: 'y2',
-      })
+      datasets.push(makeY2Dataset(y2Col, labels.map(k => +applyAgg(agg2[k] || [], aggFn).toFixed(2)), isBarType, pal, tension))
     }
   } else {
+    // numeric X axis
     labels = rows.map(r => r[xCol])
-    const data = rows.map(r => parseFloat(r[yCol]) || 0)
+    const data  = rows.map(r => parseFloat(r[yCol])  || 0)
+    const data2 = y2Col ? rows.map(r => parseFloat(r[y2Col]) || 0) : null
+
     datasets = [{
       label: yCol, data,
-      backgroundColor: (isLine || isArea) ? pal[0] + '20' : pal[0] + 'cc',
+      yAxisID: y2Col ? 'y' : undefined,
+      backgroundColor: isBarType ? pal[0] + 'cc' : pal[0] + '20',
       borderColor: pal[0],
-      borderWidth: (isLine || isArea) ? 2.5 : 0,
-      tension: 0.4,
+      borderWidth: isBarType ? 0 : 2.5,
+      tension,
       fill: isArea ? 'origin' : false,
-      pointRadius: (isLine || isArea) ? 3 : 0,
+      pointRadius: isBarType ? 0 : 3,
       pointHoverRadius: 5,
     }]
+
+    if (y2Col && data2) {
+      datasets.push(makeY2Dataset(y2Col, data2, isBarType, pal, tension))
+    }
   }
 
   return { labels, datasets }
@@ -190,7 +236,7 @@ function buildChartData ({ ds, xCol, yCol, y2Col, szCol, ct, pal, filters, sortC
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function ChartView ({ ds, graphName, onGraphNameChange, onExportPNG }) {
-  const { state, dispatch } = useApp()
+  const { state } = useApp()
   const canvasRef  = useRef(null)
   const chartRef   = useRef(null)
   const paneRef    = useRef(null)
@@ -209,29 +255,30 @@ export default function ChartView ({ ds, graphName, onGraphNameChange, onExportP
       ds, xCol, yCol,
       y2Col: state.axisY2, szCol: state.axisSz,
       ct, pal, filters: ds.filters,
-      sortCol: state.sortCol, sortDir: state.sortDir,
       aggFn: state.aggFn,
+      smoothCurves: state.smoothCurves,
     })
     if (!data) return
 
     const isStacked = ct === 'bar-stacked'
     const isArea    = ct === 'area'
+    const isBarType = ct === 'bar' || isStacked
     const isRadial  = ct === 'doughnut' || ct === 'polar'
     const isRadar   = ct === 'radar'
+    const isHBar    = isBarType && state.barOrientation === 'horizontal'
+    const hasY2     = !!state.axisY2
     const showGrid  = state.showGrid
     const gridC     = showGrid ? 'rgba(255,255,255,.05)' : 'transparent'
     const tickC     = '#4a4a5c'
     const legendC   = '#9090a8'
 
-    const isHBar = (ct === 'bar' || isStacked) && state.barOrientation === 'horizontal'
-
     const cjsType =
-      (ct === 'bar' || isStacked) ? 'bar' :
-      ct === 'scatter'            ? 'scatter' :
-      ct === 'bubble'             ? 'bubble' :
-      ct === 'doughnut'           ? 'doughnut' :
-      ct === 'radar'              ? 'radar' :
-      ct === 'polar'              ? 'polarArea' : 'line'
+      isBarType           ? 'bar'       :
+      ct === 'scatter'    ? 'scatter'   :
+      ct === 'bubble'     ? 'bubble'    :
+      ct === 'doughnut'   ? 'doughnut'  :
+      ct === 'radar'      ? 'radar'     :
+      ct === 'polar'      ? 'polarArea' : 'line'
 
     if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null }
 
@@ -245,7 +292,6 @@ export default function ChartView ({ ds, graphName, onGraphNameChange, onExportP
         animation: { duration: 220 },
         plugins: {
           legend: {
-            // display: data.datasets.length > 1 || isStacked || isRadial || isRadar,
             display: true,
             position: 'bottom',
             labels: {
@@ -281,9 +327,11 @@ export default function ChartView ({ ds, graphName, onGraphNameChange, onExportP
             grid:  { color: gridC },
             min: isArea ? 0 : undefined,
           },
-          ...(state.axisY2 ? {
+          ...(hasY2 ? {
             y2: {
               position: 'right',
+              display: true,
+              beginAtZero: isArea,
               ticks: { color: pal[1], font: { family: "'JetBrains Mono'", size: 10 } },
               grid: { display: false },
             },
@@ -295,7 +343,8 @@ export default function ChartView ({ ds, graphName, onGraphNameChange, onExportP
     return () => { if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null } }
   }, [
     ds.rows, ds.filters, state.axisX, state.axisY, state.axisY2, state.axisSz,
-    state.chartType, state.barOrientation, state.palette, state.showGrid, state.showLabels, state.smoothCurves, state.aggFn,
+    state.chartType, state.barOrientation, state.palette, state.showGrid,
+    state.smoothCurves, state.aggFn,
   ])
 
   // Expose canvas for PNG export

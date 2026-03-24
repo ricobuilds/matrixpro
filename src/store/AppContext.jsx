@@ -28,7 +28,7 @@ function reducer (state, action) {
   switch (action.type) {
 
     case 'ADD_TAB': {
-      const ds = action.ds
+      const ds = { ...action.ds, open: true }
       return {
         ...state,
         tabs:     [...state.tabs, ds],
@@ -37,15 +37,27 @@ function reducer (state, action) {
     }
 
     case 'CLOSE_TAB': {
+      const tabs = state.tabs.map(t => t.id === action.id ? { ...t, open: false } : t)
+      const activeId = state.activeId === action.id
+        ? (tabs.find(t => t.open && t.id !== action.id)?.id ?? null)
+        : state.activeId
+      return { ...state, tabs, activeId }
+    }
+
+    case 'DELETE_TAB': {
       const tabs = state.tabs.filter(t => t.id !== action.id)
       const activeId = state.activeId === action.id
-        ? (tabs.length ? tabs[tabs.length - 1].id : null)
+        ? (tabs.find(t => t.open)?.id ?? null)
         : state.activeId
       return { ...state, tabs, activeId }
     }
 
     case 'SET_ACTIVE':
-      return { ...state, activeId: action.id }
+      return {
+        ...state,
+        activeId: action.id,
+        tabs: state.tabs.map(t => t.id === action.id ? { ...t, open: true } : t),
+      }
 
     case 'UPDATE_DS': {
       // merge partial DS fields
@@ -89,7 +101,7 @@ function reducer (state, action) {
     case 'RESTORE_TABS':
       return {
         ...state,
-        tabs:     action.tabs,
+        tabs:     action.tabs.map(t => ({ ...t, open: true })),
         activeId: action.tabs.length ? action.tabs[action.tabs.length - 1].id : null,
       }
 

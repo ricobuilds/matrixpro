@@ -47,26 +47,39 @@ export default function Sidebar () {
         <div className={s.group}>
           <div className={s.groupLabel}>My Datasets</div>
           {filtered.length === 0 && !q && (
-            <div className={s.empty}>No datasets open yet</div>
+            <div className={s.empty}>No datasets yet</div>
           )}
           {filtered.length === 0 && q && (
             <div className={s.empty}>No matches for "{q}"</div>
           )}
-          {filtered.map(t => (
-            <div
-              key={t.id}
-              className={[s.item, t.id === state.activeId && s.active].filter(Boolean).join(' ')}
-              onClick={() => dispatch({ type: 'SET_ACTIVE', id: t.id })}
-            >
-              <span className={s.dot} style={{ background: t.color }} />
-              <span className={s.name}>{t.name}</span>
-              <span
-                className={s.rm}
-                onClick={e => { e.stopPropagation(); dispatch({ type: 'CLOSE_TAB', id: t.id }) }}
-                title="Close"
-              >✕</span>
-            </div>
-          ))}
+          {filtered.map(t => {
+            const isActive = t.id === state.activeId
+            const isClosed = !t.open
+            return (
+              <div
+                key={t.id}
+                className={[s.item, isActive && s.active, isClosed && s.closed].filter(Boolean).join(' ')}
+                onClick={() => dispatch({ type: 'SET_ACTIVE', id: t.id })}
+                title={isClosed ? `Click to reopen ${t.name}` : t.name}
+              >
+                <span className={s.dot} style={{ background: t.color, opacity: isClosed ? 0.4 : 1 }} />
+                <span className={s.name}>{t.name}</span>
+                {isClosed ? (
+                  <span className={s.reopenIco} title="Closed — click to reopen">
+                    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/>
+                    </svg>
+                  </span>
+                ) : (
+                  <span
+                    className={s.rm}
+                    onClick={e => { e.stopPropagation(); dispatch({ type: 'CLOSE_TAB', id: t.id }) }}
+                    title="Close"
+                  >✕</span>
+                )}
+              </div>
+            )
+          })}
         </div>
 
         {/* Sample Datasets */}

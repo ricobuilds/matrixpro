@@ -257,7 +257,7 @@ function Inner () {
   const deleteDataset = useCallback(() => {
     if (!ds || !confirm(`Delete "${ds.name}"? This cannot be undone.`)) return
     if (isElectron) window.MP.db.deleteDataset(ds.id).catch(() => {})
-    dispatch({ type: 'CLOSE_TAB', id: ds.id })
+    dispatch({ type: 'DELETE_TAB', id: ds.id })
     toast('Dataset deleted')
   }, [ds, dispatch, toast])
 

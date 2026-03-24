@@ -33,7 +33,7 @@ ${colSummary}
 
 Generate exactly 5 specific, actionable insight suggestions. Rules:
 - Column names in x/y MUST exactly match column names listed above
-- chart must be one of: bar, line, area, scatter, bubble, doughnut, bar-stacked, radar, polar
+- chart must be one of: bar, bar-horizontal, line, area, scatter, bubble, doughnut, bar-stacked, radar, polar
 - title max 7 words, desc max 18 words
 - Return ONLY a valid JSON array, no markdown
 

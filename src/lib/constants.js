@@ -33,6 +33,7 @@ export const PILL_STYLES = {
 
 export const CHART_TYPES = [
   { id: 'bar',         label: 'Bar',       icon: '📊' },
+  { id: 'bar-horizontal', label: 'Horiz. Bar', icon: '📶' },
   { id: 'line',        label: 'Line',       icon: '📈' },
   { id: 'area',        label: 'Area',       icon: '📉' },
   { id: 'bar-stacked', label: 'Stacked',   icon: '🗂' },

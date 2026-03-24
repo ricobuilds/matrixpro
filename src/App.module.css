@@ -1,0 +1,20 @@
+.app     { display: flex; height: 100vh; overflow: hidden; }
+.main    { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--bg2); }
+.content { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+.center  { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+/* Modal inputs (used inline in App) */
+.input {
+  width: 100%; background: var(--bg4); border: 1px solid var(--bd2);
+  border-radius: var(--r); padding: 8px 11px; color: var(--tx1);
+  font: 13px/1 var(--f); outline: none; display: block;
+}
+.input:focus { border-color: var(--ac); }
+
+.mLabel  { font: 500 11px/1 var(--f); color: var(--tx2); margin-bottom: 5px; margin-top: 12px; display: block; }
+.mSelect {
+  width: 100%; background: var(--bg4); border: 1px solid var(--bd2);
+  border-radius: var(--r); padding: 8px 11px; color: var(--tx1);
+  font: 12px/1 var(--f); outline: none; cursor: pointer; display: block;
+}
+.mSelect:focus { border-color: var(--ac); }

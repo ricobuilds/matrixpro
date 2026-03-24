@@ -1,0 +1,16 @@
+.split      { display: flex; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
+.pane       { display: flex; flex-direction: column; overflow: hidden; flex: 0 0 56%; min-height: 180px; background: var(--bg3); border-bottom: 1px solid var(--bd1); }
+.gbar       { display: flex; align-items: center; gap: 8px; padding: 10px 14px 0; flex-shrink: 0; }
+.gname      { background: none; border: none; outline: none; font: 600 13px/1 var(--f); color: var(--tx1); cursor: text; flex: 1; min-width: 0; padding: 2px 5px; border-radius: 4px; transition: background var(--ease); }
+.gname:hover { background: var(--bg4); }
+.gname:focus { background: var(--bg4); border-bottom: 1px solid var(--ac); }
+.sp         { flex: 1; }
+.gbtn       { display: flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 5px; font: 500 11px/1 var(--f); background: var(--bg4); border: 1px solid var(--bd2); color: var(--tx2); cursor: pointer; transition: all var(--ease); }
+.gbtn:hover { color: var(--tx1); border-color: var(--bd3); }
+.cwrap      { flex: 1; min-height: 0; position: relative; padding: 10px 14px 14px; }
+.cwrap canvas { width: 100% !important; height: 100% !important; }
+.resizer    { height: 5px; flex-shrink: 0; cursor: ns-resize; display: flex; align-items: center; justify-content: center; background: var(--bd1); transition: background var(--ease); }
+.resizer::after { content: ''; width: 36px; height: 3px; border-radius: 2px; background: var(--bd3); transition: background var(--ease); }
+.resizer:hover, .dragging { background: var(--ac-lo); }
+.resizer:hover::after, .dragging::after { background: var(--ac); }
+.tablePart  { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }

@@ -1,0 +1,114 @@
+import React from 'react'
+import { useApp } from '../store/AppContext'
+import s from './Toolbar.module.css'
+
+export default function Toolbar ({ ds, onRename, onDelete, onSaveGraph, onExportCSV, onGroup }) {
+  const { state, dispatch } = useApp()
+  const isGraph = state.view === 'graph'
+
+  return (
+    <div className={s.bar}>
+      <div className={s.meta}>
+        <span className={s.name}>{ds.name}</span>
+        <span className={s.pill}>{ds.rows.length.toLocaleString()} rows</span>
+      </div>
+
+      <div className={s.viewSw}>
+        <button
+          className={[s.vbtn, state.view === 'table' && s.active].filter(Boolean).join(' ')}
+          onClick={() => dispatch({ type: 'SET_VIEW', view: 'table' })}
+        >
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="1" y="1" width="14" height="14" rx="2"/>
+            <path d="M1 5h14M1 10h14M5 5v9M11 5v9"/>
+          </svg>
+          Table
+        </button>
+        <button
+          className={[s.vbtn, isGraph && s.active].filter(Boolean).join(' ')}
+          onClick={() => dispatch({ type: 'SET_VIEW', view: 'graph' })}
+        >
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="1,13 5,7 9,10 13,3 15,5"/>
+          </svg>
+          Graph
+        </button>
+      </div>
+
+      {isGraph && (
+        <div className={s.axBar}>
+          <span className={s.axLbl}>X</span>
+          <select
+            className={s.axSel}
+            value={state.axisX}
+            onChange={e => dispatch({ type: 'SET_AXIS', which: 'X', value: e.target.value })}
+          >
+            {ds.cols.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <div className={s.axDiv}/>
+          <span className={s.axLbl}>Y</span>
+          <select
+            className={s.axSel}
+            value={state.axisY}
+            onChange={e => dispatch({ type: 'SET_AXIS', which: 'Y', value: e.target.value })}
+          >
+            {ds.cols.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+      )}
+
+      <div className={s.sp} />
+
+      <button className={s.btn} onClick={onGroup} title="Group & aggregate">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/>
+          <rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/>
+        </svg>
+        Group
+      </button>
+
+      <button
+        className={[s.btn, state.panelOpen && s.btnOn].filter(Boolean).join(' ')}
+        onClick={() => dispatch({ type: 'TOGGLE_PANEL' })}
+      >
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M2 3h12l-4.5 5.5v5.5l-3-2v-3.5L2 3z"/>
+        </svg>
+        Filters
+        {Object.keys(ds.filters || {}).length > 0 && (
+          <span className={s.badge}>{Object.keys(ds.filters).length}</span>
+        )}
+      </button>
+
+      {isGraph && (
+        <button className={[s.btn, s.primary].join(' ')} onClick={onSaveGraph}>
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 2h8l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+            <path d="M5 14V9h6v5M5 2v4h5"/>
+          </svg>
+          Save graph
+        </button>
+      )}
+
+      <button className={s.btn} onClick={onExportCSV}>
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M4 12l4 2 4-2M8 14V6M3 9l-1 4h12l-1-4"/>
+        </svg>
+        Export CSV
+      </button>
+
+      <div className={s.div}/>
+
+      <button className={s.iconBtn} onClick={onRename} title="Rename dataset">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M11 2.5l2.5 2.5-8 8H3V10.5l8-8z"/>
+        </svg>
+      </button>
+      <button className={[s.iconBtn, s.danger].join(' ')} onClick={onDelete} title="Delete dataset">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8l1-10"/>
+        </svg>
+      </button>
+    </div>
+  )
+}

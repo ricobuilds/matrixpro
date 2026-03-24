@@ -1,0 +1,52 @@
+.wrap   { display: flex; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
+.scroll { flex: 1; overflow: auto; min-height: 0; }
+.table  { width: 100%; border-collapse: collapse; table-layout: fixed; }
+
+.table thead { position: sticky; top: 0; z-index: 5; }
+.table th {
+  background: var(--bg3); border-bottom: 1px solid var(--bd2);
+  border-right: 1px solid var(--bd1); text-align: left; padding: 0;
+}
+.thi       { padding: 8px 12px 6px; display: flex; flex-direction: column; gap: 2px; }
+.idx       { min-width: 40px; max-width: 40px; align-items: center; padding: 8px 4px; }
+.num_col   { min-width: 110px; }
+.cat_col   { min-width: 120px; }
+.thName    { display: flex; align-items: center; gap: 4px; overflow: hidden; }
+.thLabel   { font-size: 12px; font-weight: 500; color: var(--tx1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sortBtn   { cursor: pointer; color: var(--tx3); border-radius: 3px; padding: 1px 2px; font-size: 11px; flex-shrink: 0; transition: color var(--ease); }
+.sortBtn:hover, .sortOn { color: var(--ac2); }
+.sortDir   { font-size: 10px; color: var(--ac2); flex-shrink: 0; }
+.thMeta    { font-size: 9.5px; color: var(--tx3); font-family: var(--m); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.thMeta b  { color: var(--tx2); font-weight: 500; }
+
+.table td {
+  padding: 7px 12px; border-bottom: 1px solid var(--bd1);
+  border-right: 1px solid var(--bd1);
+  font-size: 12px; color: var(--tx2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  position: relative; max-width: 200px;
+}
+.table tr:hover td { background: var(--bg4); }
+.tdIdx { color: var(--tx3) !important; text-align: center; font: 11px/1 var(--m); }
+.num   { color: var(--tx1); font-family: var(--m); }
+.cellBar {
+  position: absolute; left: 0; top: 0; height: 100%;
+  pointer-events: none; border-radius: 0 2px 2px 0; opacity: .11;
+}
+
+.footer {
+  padding: 5px 14px; border-top: 1px solid var(--bd1);
+  background: var(--bg3); font-size: 11px; color: var(--tx3);
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+}
+.footer b  { color: var(--tx2); font-family: var(--m); font-weight: 500; }
+.filtered  { color: var(--tx3); }
+
+/* cell td (base) */
+.td {
+  padding: 7px 12px; border-bottom: 1px solid var(--bd1);
+  border-right: 1px solid var(--bd1);
+  font-size: 12px; color: var(--tx2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  position: relative; max-width: 200px;
+}

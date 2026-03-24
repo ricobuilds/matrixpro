@@ -1,0 +1,67 @@
+.bar {
+  height: 38px; min-height: 38px; flex-shrink: 0;
+  display: flex; align-items: stretch;
+  background: var(--bg2); border-bottom: 1px solid var(--bd1);
+  -webkit-app-region: drag;
+  overflow: hidden;
+}
+
+.tabs {
+  display: flex; align-items: flex-end;
+  overflow-x: auto; overflow-y: hidden;
+  -webkit-app-region: no-drag;
+}
+.tabs::-webkit-scrollbar { height: 0; }
+
+.tab {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 12px; height: 38px; flex-shrink: 0;
+  font: 500 12.5px/1 var(--f); color: var(--tx3);
+  cursor: pointer; white-space: nowrap; user-select: none;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: color var(--ease), background var(--ease), border-color var(--ease);
+  -webkit-app-region: no-drag;
+  border-radius: 6px 6px 0 0;
+}
+.tab:hover { color: var(--tx2); background: var(--bg3); }
+
+.dot   { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.label { overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+
+.close {
+  width: 15px; height: 15px; border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--tx3); font-size: 10px;
+  opacity: 0; flex-shrink: 0;
+  transition: opacity .1s, background .1s;
+}
+.tab:hover .close { opacity: 1; }
+.close:hover { background: var(--bg5); color: var(--tx1); }
+
+/* Active tab — applied as second class */
+.active {
+  color: var(--tx1) !important;
+  border-bottom-color: var(--ac) !important;
+  background: var(--bg2) !important;
+}
+.active .close { opacity: 1; }
+
+/* + New dataset button */
+.newBtn {
+  align-self: center;
+  width: 26px; height: 26px; margin: 0 4px;
+  border-radius: 6px; border: 1px solid var(--bd2);
+  background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--tx3); cursor: pointer; flex-shrink: 0;
+  transition: all var(--ease);
+  -webkit-app-region: no-drag;
+}
+.newBtn:hover {
+  background: var(--bg4);
+  border-color: var(--bd3);
+  color: var(--tx1);
+}
+
+/* Draggable fill */
+.drag { flex: 1; -webkit-app-region: drag; min-width: 20px; }

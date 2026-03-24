@@ -9,7 +9,7 @@ export default function Titlebar ({ onUpload }) {
     <div className={s.bar}>
       {/* Dataset tabs */}
       <div className={s.tabs}>
-        {state.tabs.map(t => (
+        {state.tabs.filter(t => t.open !== false).map(t => (
           <div
             key={t.id}
             className={[s.tab, t.id === state.activeId && s.active].filter(Boolean).join(' ')}

@@ -48,13 +48,16 @@ function Inner () {
   const [groupFn,     setGroupFn]     = useState('sum')
   const [graphName,   setGraphName]   = useState('Untitled graph')
   const [dropping,    setDropping]    = useState(false)
-  const dropCount = useRef(0)
+  const dropCount  = useRef(0)
   const fileInputRef = useRef(null)
+  const didInit    = useRef(false)
 
   const ds = getDS()
 
   // ── Persistence: restore on mount ──────────────────────────────────────────
   useEffect(() => {
+    if (didInit.current) return
+    didInit.current = true
     if (!isElectron) { addSample('sales'); return }
     ;(async () => {
       try {

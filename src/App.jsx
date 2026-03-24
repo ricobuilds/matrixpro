@@ -6,6 +6,7 @@ import Titlebar   from './components/Titlebar'
 import Toolbar    from './components/Toolbar'
 import DataTable  from './components/DataTable'
 import ChartView  from './components/ChartView'
+import SqlEditor  from './components/SqlEditor'
 import Panel      from './components/Panel'
 import Welcome    from './components/Welcome'
 import Modal      from './components/Modal'
@@ -114,6 +115,7 @@ function Inner () {
       if (e.key === 'Escape') { setSaveModal(false); setRenameModal(false); setGroupModal(false) }
       if ((e.metaKey || e.ctrlKey) && e.key === '1') { e.preventDefault(); dispatch({ type: 'SET_VIEW', view: 'table' }) }
       if ((e.metaKey || e.ctrlKey) && e.key === '2') { e.preventDefault(); dispatch({ type: 'SET_VIEW', view: 'graph' }) }
+      if ((e.metaKey || e.ctrlKey) && e.key === '3') { e.preventDefault(); dispatch({ type: 'SET_VIEW', view: 'sql' }) }
       if ((e.metaKey || e.ctrlKey) && e.key === '\\') { e.preventDefault(); dispatch({ type: 'TOGGLE_PANEL' }) }
       if ((e.metaKey || e.ctrlKey) && e.key === 's' && state.view === 'graph') { e.preventDefault(); openSaveModal() }
       if ((e.metaKey || e.ctrlKey) && e.key === 'e') { e.preventDefault(); doExportCSV() }
@@ -353,15 +355,18 @@ function Inner () {
                     onExportPNG={doExportPNG}
                   />
                 )}
+                {state.view === 'sql' && <SqlEditor />}
               </div>
-              <Panel
-                ds={ds}
-                onFilterAdd={addFilter}
-                onFilterRemove={removeFilter}
-                onFilterClear={clearAllFilters}
-                onLoadGraph={loadGraph}
-                onDeleteGraph={deleteGraph}
-              />
+              {state.view !== 'sql' && (
+                <Panel
+                  ds={ds}
+                  onFilterAdd={addFilter}
+                  onFilterRemove={removeFilter}
+                  onFilterClear={clearAllFilters}
+                  onLoadGraph={loadGraph}
+                  onDeleteGraph={deleteGraph}
+                />
+              )}
             </div>
           </>
         ) : (

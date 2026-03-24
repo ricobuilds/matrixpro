@@ -5,6 +5,7 @@ import s from './Toolbar.module.css'
 export default function Toolbar ({ ds, onRename, onDelete, onSaveGraph, onExportCSV, onGroup }) {
   const { state, dispatch } = useApp()
   const isGraph = state.view === 'graph'
+  const isSql   = state.view === 'sql'
 
   return (
     <div className={s.bar}>
@@ -33,6 +34,15 @@ export default function Toolbar ({ ds, onRename, onDelete, onSaveGraph, onExport
           </svg>
           Graph
         </button>
+        <button
+          className={[s.vbtn, isSql && s.active].filter(Boolean).join(' ')}
+          onClick={() => dispatch({ type: 'SET_VIEW', view: 'sql' })}
+        >
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M2 4h12M2 8h8M2 12h5"/><path d="M12 9l2 2-2 2"/>
+          </svg>
+          SQL
+        </button>
       </div>
 
       {isGraph && (
@@ -59,26 +69,30 @@ export default function Toolbar ({ ds, onRename, onDelete, onSaveGraph, onExport
 
       <div className={s.sp} />
 
-      <button className={s.btn} onClick={onGroup} title="Group & aggregate">
-        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-          <rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/>
-          <rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/>
-        </svg>
-        Group
-      </button>
+      {!isSql && (
+        <button className={s.btn} onClick={onGroup} title="Group & aggregate">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/>
+            <rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/>
+          </svg>
+          Group
+        </button>
+      )}
 
-      <button
-        className={[s.btn, state.panelOpen && s.btnOn].filter(Boolean).join(' ')}
-        onClick={() => dispatch({ type: 'TOGGLE_PANEL' })}
-      >
-        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M2 3h12l-4.5 5.5v5.5l-3-2v-3.5L2 3z"/>
-        </svg>
-        Filters
-        {Object.keys(ds.filters || {}).length > 0 && (
-          <span className={s.badge}>{Object.keys(ds.filters).length}</span>
-        )}
-      </button>
+      {!isSql && (
+        <button
+          className={[s.btn, state.panelOpen && s.btnOn].filter(Boolean).join(' ')}
+          onClick={() => dispatch({ type: 'TOGGLE_PANEL' })}
+        >
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M2 3h12l-4.5 5.5v5.5l-3-2v-3.5L2 3z"/>
+          </svg>
+          Filters
+          {Object.keys(ds.filters || {}).length > 0 && (
+            <span className={s.badge}>{Object.keys(ds.filters).length}</span>
+          )}
+        </button>
+      )}
 
       {isGraph && (
         <button className={[s.btn, s.primary].join(' ')} onClick={onSaveGraph}>

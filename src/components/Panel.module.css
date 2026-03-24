@@ -126,7 +126,6 @@
 }
 .aiRefresh:hover { background: var(--bg4); color: var(--tx2); }
 .aiRefresh svg   { transition: transform .4s; }
-.spinning        { }
 .spinning svg    { animation: spin .7s linear infinite; }
 .aiPrompt { font-size: 11.5px; color: var(--tx3); line-height: 1.6; margin-bottom: 8px; }
 .aiPrompt b { color: var(--tx2); }

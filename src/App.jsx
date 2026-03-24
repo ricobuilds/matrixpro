@@ -6,7 +6,8 @@ import Titlebar   from './components/Titlebar'
 import Toolbar    from './components/Toolbar'
 import DataTable  from './components/DataTable'
 import ChartView  from './components/ChartView'
-import SqlEditor  from './components/SqlEditor'
+import { lazy, Suspense } from 'react'
+const SqlEditor = lazy(() => import('./components/SqlEditor'))
 import Panel      from './components/Panel'
 import Welcome    from './components/Welcome'
 import Modal      from './components/Modal'
@@ -355,7 +356,11 @@ function Inner () {
                     onExportPNG={doExportPNG}
                   />
                 )}
-                {state.view === 'sql' && <SqlEditor />}
+                {state.view === 'sql' && (
+                  <Suspense fallback={<div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--tx3)', fontSize: 13 }}>Loading SQL engine…</div>}>
+                    <SqlEditor />
+                  </Suspense>
+                )}
               </div>
               {state.view !== 'sql' && (
                 <Panel

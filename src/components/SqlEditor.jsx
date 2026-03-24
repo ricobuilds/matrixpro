@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import initSqlJs from 'sql.js'
 import { useApp } from '../store/AppContext'
 import { makeDS } from '../lib/data'
 import { useToast } from './Toast'
@@ -7,15 +6,18 @@ import s from './SqlEditor.module.css'
 
 const isElectron = !!window.MP
 
-// ─── sql.js singleton loader ──────────────────────────────────────────────────
+// ─── sql.js singleton loader (dynamic import avoids Vite ESM issues) ─────────
 let sqlPromise = null
 function getSql () {
   if (!sqlPromise) {
-    sqlPromise = initSqlJs({
-      locateFile: file =>
-        isElectron && window.MP.resourcesPath
-          ? `file://${window.MP.resourcesPath}/${file}`
-          : `/${file}`,
+    sqlPromise = import('sql.js').then(m => {
+      const initSqlJs = m.default ?? m
+      return initSqlJs({
+        locateFile: file =>
+          isElectron && window.MP?.resourcesPath
+            ? `file://${window.MP.resourcesPath}/${file}`
+            : `/${file}`,
+      })
     })
   }
   return sqlPromise

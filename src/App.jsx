@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react'
+import React, { useState, useCallback, useEffect, useRef, Component } from 'react'
 import { AppProvider, useApp } from './store/AppContext'
 import { ToastProvider, useToast } from './components/Toast'
 import Sidebar    from './components/Sidebar'
@@ -17,6 +17,22 @@ import { isNumericCol } from './lib/data'
 import Papa from 'papaparse'
 
 const isElectron = !!window.MP
+
+class SqlBoundary extends Component {
+  state = { err: null }
+  static getDerivedStateFromError (e) { return { err: e } }
+  render () {
+    if (this.state.err) return (
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, color: 'var(--tx3)', fontSize: 13, padding: 32 }}>
+        <span style={{ fontSize: 22 }}>⚠</span>
+        <span>SQL engine failed to load</span>
+        <span style={{ fontSize: 11, color: 'var(--tx3)', fontFamily: 'var(--m)' }}>{this.state.err.message}</span>
+        <button onClick={() => this.setState({ err: null })} style={{ marginTop: 8, padding: '5px 14px', background: 'var(--bg4)', border: '1px solid var(--bd2)', borderRadius: 'var(--r)', color: 'var(--tx2)', cursor: 'pointer', fontSize: 12 }}>Retry</button>
+      </div>
+    )
+    return this.props.children
+  }
+}
 
 // ─── Drop overlay ─────────────────────────────────────────────────────────────
 function DropOverlay ({ visible }) {
@@ -357,9 +373,11 @@ function Inner () {
                   />
                 )}
                 {state.view === 'sql' && (
-                  <Suspense fallback={<div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--tx3)', fontSize: 13 }}>Loading SQL engine…</div>}>
-                    <SqlEditor />
-                  </Suspense>
+                  <SqlBoundary>
+                    <Suspense fallback={<div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--tx3)', fontSize: 13 }}>Loading SQL engine…</div>}>
+                      <SqlEditor />
+                    </Suspense>
+                  </SqlBoundary>
                 )}
               </div>
               {state.view !== 'sql' && (

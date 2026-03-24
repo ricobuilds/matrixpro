@@ -58,16 +58,16 @@ function Inner () {
   useEffect(() => {
     if (didInit.current) return
     didInit.current = true
-    if (!isElectron) { addSample('sales'); return }
+    if (!isElectron) return   // web: no persistence, start with Welcome screen
     ;(async () => {
       try {
         const saved = await window.MP.db.loadDatasets()
-        if (!saved.length) { addSample('sales'); return }
+        if (!saved.length) return  // empty DB → Welcome screen
         dispatch({
           type: 'RESTORE_TABS',
           tabs: saved.map(r => ({ ...r, filters: {}, filterLabels: {}, savedGraphs: [] })),
         })
-      } catch { addSample('sales') }
+      } catch {}  // on error → Welcome screen
     })()
   }, [])
 

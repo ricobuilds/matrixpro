@@ -99,4 +99,64 @@
 .searchHint { margin-left: auto; font-size: 10px; color: var(--tx3); font-family: var(--m); opacity: .5; }
 
 /* .td inherits from .table td above */
-.td { }
+.td { position: relative; }
+
+/* ── Editing ─────────────────────────────────────────────────────────────── */
+.tdEditing {
+  outline: 2px solid var(--ac);
+  outline-offset: -1px;
+  background: var(--bg1) !important;
+  z-index: 2;
+  overflow: visible;
+}
+.cellEdit {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  padding: 0 12px; box-sizing: border-box;
+  background: var(--bg1); border: none; outline: none;
+  font: 12px/1 var(--f); color: var(--tx1);
+  z-index: 3;
+}
+
+/* ── Row index cell: row num ↔ delete button ────────────────────────────── */
+.tdIdxCell { position: relative !important; overflow: visible; }
+.rowNum    { transition: opacity .1s; pointer-events: none; }
+.tdDel {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; cursor: pointer;
+  color: var(--tx3); border-radius: 4px;
+  opacity: 0; transition: opacity .1s, color .1s, background .1s;
+}
+.tdDel:hover { color: var(--tx1); background: var(--bg5); }
+.dataRow:hover .tdDel  { opacity: 1; }
+.dataRow:hover .rowNum { opacity: 0; }
+
+/* ── Empty dataset state ─────────────────────────────────────────────────── */
+.emptyDs {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 48px 24px; text-align: center;
+}
+.emptyDsIco  { color: var(--tx3); opacity: .2; }
+.emptyDsText { font-size: 14px; font-weight: 600; color: var(--tx2); }
+.emptyDsSub  { font-size: 12px; color: var(--tx3); line-height: 1.5; }
+.emptyAddBtn {
+  margin-top: 6px;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: var(--r);
+  background: var(--ac); border: none; cursor: pointer;
+  font: 600 12.5px/1 var(--f); color: #fff;
+  transition: opacity .15s;
+}
+.emptyAddBtn:hover { opacity: .85; }
+
+/* ── Footer add-row button ───────────────────────────────────────────────── */
+.addRowBtn {
+  margin-left: 8px;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 5px;
+  background: var(--bg4); border: 1px solid var(--bd2);
+  font: 11px/1 var(--f); color: var(--tx2); cursor: pointer;
+  transition: all .1s;
+}
+.addRowBtn:hover { background: var(--bg5); color: var(--tx1); border-color: var(--bd3); }

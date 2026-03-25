@@ -5,9 +5,9 @@ import { PALETTES } from '../lib/constants'
 import s from './DataTable.module.css'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const ROW_H     = 32  // must match CSS td height
-const OVERSCAN  = 20  // extra rows rendered above and below the viewport
-const MIN_COL_W = 50  // minimum column width when resizing
+const ROW_H     = 32
+const OVERSCAN  = 20
+const MIN_COL_W = 50
 const DEFAULT_COL_W = { numeric: 110, date: 150, boolean: 90, text: 130 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -48,13 +48,40 @@ function CellValue ({ cell }) {
   return <span>{cell.label}</span>
 }
 
+// ─── Inline cell editor ───────────────────────────────────────────────────────
+function CellEditor ({ initialValue, onCommit, onCancel, onNavigate }) {
+  const [v, setV]     = useState(String(initialValue ?? ''))
+  const vRef          = useRef(v)
+  vRef.current        = v
+  const handled       = useRef(false)
+  const inputRef      = useRef(null)
+
+  useEffect(() => { inputRef.current?.focus(); inputRef.current?.select() }, [])
+
+  return (
+    <input
+      ref={inputRef}
+      className={s.cellEdit}
+      value={v}
+      onChange={e => setV(e.target.value)}
+      onKeyDown={e => {
+        if (e.key === 'Enter')  { e.preventDefault(); handled.current = true; onNavigate('down',  vRef.current) }
+        if (e.key === 'Tab')    { e.preventDefault(); handled.current = true; onNavigate(e.shiftKey ? 'left' : 'right', vRef.current) }
+        if (e.key === 'Escape') { e.preventDefault(); handled.current = true; onCancel() }
+      }}
+      onBlur={() => { if (!handled.current) onCommit(vRef.current) }}
+      onClick={e => e.stopPropagation()}
+    />
+  )
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function DataTable ({ ds, compact = false }) {
   const { state, dispatch } = useApp()
   const pal = PALETTES[state.palette]
 
   // ── Scroll tracking ──────────────────────────────────────────────────────────
-  const scrollRef  = useRef(null)
+  const scrollRef   = useRef(null)
   const [scrollTop,  setScrollTop]  = useState(0)
   const [viewHeight, setViewHeight] = useState(600)
 
@@ -139,8 +166,8 @@ export default function DataTable ({ ds, compact = false }) {
   const bottomPad   = Math.max(0, (searchedRows.length - endIdx) * ROW_H)
 
   // ── Column resizing ──────────────────────────────────────────────────────────
-  const [colWidths,   setColWidths]  = useState(() => ds.colWidths || {})
-  const [draggingCol, setDraggingCol] = useState(null)
+  const [colWidths,    setColWidths]   = useState(() => ds.colWidths || {})
+  const [draggingCol,  setDraggingCol] = useState(null)
   const widthsRef = useRef(colWidths)
   widthsRef.current = colWidths
   const dragRef = useRef(null)
@@ -177,6 +204,89 @@ export default function DataTable ({ ds, compact = false }) {
     document.addEventListener('mousemove', onMouseMove)
     document.addEventListener('mouseup',   onMouseUp)
   }, [colW, ds.id, dispatch])
+
+  // ── Cell editing ──────────────────────────────────────────────────────────────
+  // editingCell: { dsRowIdx: number, col: string } | null
+  // dsRowIdx is the index in ds.rows (stable across sort/filter)
+  const [editingCell, setEditingCell] = useState(null)
+
+  useEffect(() => { setEditingCell(null) }, [ds.id])
+
+  const commitEdit = useCallback((dsRowIdx, col, value) => {
+    if (dsRowIdx < 0 || dsRowIdx >= ds.rows.length) return
+    const newRows = ds.rows.map((r, i) => i === dsRowIdx ? { ...r, [col]: value } : r)
+    dispatch({ type: 'UPDATE_DS', id: ds.id, patch: { rows: newRows } })
+  }, [ds.rows, ds.id, dispatch])
+
+  const addRow = useCallback((startCol) => {
+    const empty      = Object.fromEntries(ds.cols.map(c => [c, '']))
+    const newRows    = [...ds.rows, empty]
+    const newDsRowIdx = newRows.length - 1
+    dispatch({ type: 'UPDATE_DS', id: ds.id, patch: { rows: newRows } })
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
+      setEditingCell({ dsRowIdx: newDsRowIdx, col: startCol || visibleCols[0] || ds.cols[0] })
+    }, 30)
+  }, [ds.rows, ds.cols, ds.id, dispatch, visibleCols])
+
+  const deleteRow = useCallback((dsRowIdx) => {
+    const newRows = ds.rows.filter((_, i) => i !== dsRowIdx)
+    dispatch({ type: 'UPDATE_DS', id: ds.id, patch: { rows: newRows } })
+    setEditingCell(prev => prev?.dsRowIdx === dsRowIdx ? null : prev)
+  }, [ds.rows, ds.id, dispatch])
+
+  // navigate handles commit + cursor movement in one step to avoid stale-closure issues
+  const navigate = useCallback((dir, dsRowIdx, col, newVal) => {
+    const ci = visibleCols.indexOf(col)
+    const ri = searchedRows.findIndex(r => ds.rows.indexOf(r) === dsRowIdx)
+
+    // Special case: last row + down → commit + add new row atomically
+    if (dir === 'down' && ri >= searchedRows.length - 1) {
+      const updatedRows = ds.rows.map((r, i) => i === dsRowIdx ? { ...r, [col]: newVal } : r)
+      const empty       = Object.fromEntries(ds.cols.map(c => [c, '']))
+      const newRows     = [...updatedRows, empty]
+      dispatch({ type: 'UPDATE_DS', id: ds.id, patch: { rows: newRows } })
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
+        setEditingCell({ dsRowIdx: newRows.length - 1, col })
+      }, 30)
+      return
+    }
+
+    // All other cases: commit, then move cursor
+    commitEdit(dsRowIdx, col, newVal)
+
+    if (dir === 'right') {
+      if (ci < visibleCols.length - 1) {
+        setEditingCell({ dsRowIdx, col: visibleCols[ci + 1] })
+      } else if (ri < searchedRows.length - 1) {
+        setEditingCell({ dsRowIdx: ds.rows.indexOf(searchedRows[ri + 1]), col: visibleCols[0] })
+      } else {
+        setEditingCell(null)
+      }
+    } else if (dir === 'left') {
+      if (ci > 0) {
+        setEditingCell({ dsRowIdx, col: visibleCols[ci - 1] })
+      } else if (ri > 0) {
+        setEditingCell({ dsRowIdx: ds.rows.indexOf(searchedRows[ri - 1]), col: visibleCols[visibleCols.length - 1] })
+      } else {
+        setEditingCell(null)
+      }
+    } else if (dir === 'down') {
+      // ri < searchedRows.length - 1 guaranteed here
+      setEditingCell({ dsRowIdx: ds.rows.indexOf(searchedRows[ri + 1]), col })
+    }
+  }, [commitEdit, ds.rows, ds.cols, ds.id, dispatch, visibleCols, searchedRows])
+
+  // ⌘↵ to add row; Escape to exit edit
+  useEffect(() => {
+    const handler = e => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); addRow() }
+      if (e.key === 'Escape' && editingCell && !searchOpen) setEditingCell(null)
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [addRow, editingCell, searchOpen])
 
   // ── Render ───────────────────────────────────────────────────────────────────
   const sortBy      = col => dispatch({ type: 'SET_SORT', col })
@@ -278,23 +388,52 @@ export default function DataTable ({ ds, compact = false }) {
             )}
 
             {visibleRows.map((row, vi) => {
-              const i = startIdx + vi
+              const i          = startIdx + vi
+              const dsRowIdx   = ds.rows.indexOf(row)
+              const isEditRow  = editingCell?.dsRowIdx === dsRowIdx
               return (
-                <tr key={i} className={i % 2 === 1 ? s.alt : ''}>
-                  <td className={s.tdIdx}>{i + 1}</td>
+                <tr key={i} className={[i % 2 === 1 ? s.alt : '', s.dataRow].filter(Boolean).join(' ')}>
+                  <td className={[s.tdIdx, s.tdIdxCell].join(' ')}>
+                    <span className={s.rowNum}>{i + 1}</span>
+                    <button
+                      className={s.tdDel}
+                      onClick={e => { e.stopPropagation(); deleteRow(dsRowIdx) }}
+                      title="Delete row"
+                    >
+                      <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                        <path d="M1.5 1.5l7 7M8.5 1.5l-7 7"/>
+                      </svg>
+                    </button>
+                  </td>
                   {visibleCols.map(col => {
-                    const cell = fmtCell(row[col], colTypes[col])
-                    const nm   = numMax[col]
-                    const pct  = nm ? Math.abs(parseNumeric(row[col]) || 0) / nm.max * 100 : 0
+                    const cell        = fmtCell(row[col], colTypes[col])
+                    const nm          = numMax[col]
+                    const pct         = nm ? Math.abs(parseNumeric(row[col]) || 0) / nm.max * 100 : 0
+                    const isEditCell  = isEditRow && editingCell?.col === col
                     return (
-                      <td key={col} className={s.td}>
-                        {nm && (
-                          <div
-                            className={s.cellBar}
-                            style={{ width: `${pct}%`, background: nm.color }}
+                      <td
+                        key={col}
+                        className={[s.td, isEditCell ? s.tdEditing : ''].filter(Boolean).join(' ')}
+                        onDoubleClick={() => !searchOpen && setEditingCell({ dsRowIdx, col })}
+                      >
+                        {isEditCell ? (
+                          <CellEditor
+                            initialValue={row[col]}
+                            onCommit={v => { commitEdit(dsRowIdx, col, v); setEditingCell(null) }}
+                            onCancel={() => setEditingCell(null)}
+                            onNavigate={(dir, v) => navigate(dir, dsRowIdx, col, v)}
                           />
+                        ) : (
+                          <>
+                            {nm && (
+                              <div
+                                className={s.cellBar}
+                                style={{ width: `${pct}%`, background: nm.color }}
+                              />
+                            )}
+                            <CellValue cell={cell} />
+                          </>
                         )}
-                        <CellValue cell={cell} />
                       </td>
                     )
                   })}
@@ -310,6 +449,24 @@ export default function DataTable ({ ds, compact = false }) {
           </tbody>
 
         </table>
+
+        {/* ── Empty state ── */}
+        {ds.rows.length === 0 && (
+          <div className={s.emptyDs}>
+            <svg className={s.emptyDsIco} width="34" height="34" viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round">
+              <rect x="3" y="3" width="26" height="26" rx="4"/>
+              <path d="M3 11h26M3 19h26M11 11v16M21 11v16"/>
+            </svg>
+            <div className={s.emptyDsText}>No rows yet</div>
+            <div className={s.emptyDsSub}>Double-click a cell to edit · Tab/Enter to navigate</div>
+            <button className={s.emptyAddBtn} onClick={() => addRow()}>
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M8 3v10M3 8h10"/>
+              </svg>
+              Add first row
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Footer ── */}
@@ -332,8 +489,14 @@ export default function DataTable ({ ds, compact = false }) {
           </>
         )}
         <span className={s.filtered}> · {(endIdx - startIdx).toLocaleString()} rendered</span>
+        <button className={s.addRowBtn} onClick={() => addRow()} title="Add row (⌘↵)">
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M8 3v10M3 8h10"/>
+          </svg>
+          Add row
+        </button>
         {!searchOpen && (
-          <span className={s.searchHint}>⌘F to search</span>
+          <span className={s.searchHint}>⌘F search · ⌘↵ add row</span>
         )}
       </div>
 

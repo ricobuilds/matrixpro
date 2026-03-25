@@ -71,6 +71,7 @@ function Inner () {
   const dropCount    = useRef(0)
   const fileInputRef = useRef(null)
   const didInit      = useRef(false)
+  const rowSaveTimer = useRef(null)
   const persistedIds = useRef(new Set())   // IDs upserted to DB
   const openStates   = useRef(new Map())   // id → last-persisted open state
 
@@ -108,6 +109,15 @@ function Inner () {
       }
     })
   }, [state.tabs])
+
+  // ── Debounced row save when cells are edited ────────────────────────────────
+  useEffect(() => {
+    if (!isElectron || !ds) return
+    clearTimeout(rowSaveTimer.current)
+    rowSaveTimer.current = setTimeout(() => {
+      window.MP.db.upsertDataset({ id: ds.id, name: ds.name, color: ds.color, cols: ds.cols, rows: ds.rows }).catch(() => {})
+    }, 800)
+  }, [ds?.rows])
 
   // ── Persist open/close state changes to SQLite ──────────────────────────────
   useEffect(() => {

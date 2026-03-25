@@ -1,15 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { useApp } from '../store/AppContext'
 import { detectColType } from '../lib/data'
+import { COL_TYPES } from '../lib/constants'
 import s from './Toolbar.module.css'
-
-// ─── Type badge config ────────────────────────────────────────────────────────
-const TB = {
-  numeric: { label: '#', cls: s.tbNum  },
-  date:    { label: 'D', cls: s.tbDate },
-  boolean: { label: 'B', cls: s.tbBool },
-  text:    { label: 'T', cls: s.tbCat  },
-}
 
 // ─── Column visibility dropdown ───────────────────────────────────────────────
 function ColMenu ({ ds }) {
@@ -67,7 +60,7 @@ function ColMenu ({ ds }) {
       <div className={s.colMenuList}>
         {filtered.map(col => {
           const visible = !hidden.has(col)
-          const tb = TB[colTypes[col]] || TB.text
+          const tb = COL_TYPES[colTypes[col]] || COL_TYPES.text
           return (
             <div key={col} className={s.colRow} onClick={() => toggle(col)}>
               <span className={`${s.colCheck} ${visible ? s.colCheckOn : ''}`}>
@@ -77,7 +70,7 @@ function ColMenu ({ ds }) {
                   </svg>
                 )}
               </span>
-              <span className={`${s.colTypeBadge} ${tb.cls}`}>{tb.label}</span>
+              <span className={s.colTypeBadge} style={{ color: tb.color, background: tb.bg }}>{tb.label}</span>
               <span className={`${s.colName} ${!visible ? s.colNameHidden : ''}`}>{col}</span>
             </div>
           )

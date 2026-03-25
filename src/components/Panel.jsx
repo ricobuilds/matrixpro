@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useApp } from '../store/AppContext'
-import { PALETTES, CHART_TYPES } from '../lib/constants'
+import { PALETTES, CHART_TYPES, COL_TYPES } from '../lib/constants'
 import { isNumericCol, detectColType, fmtN, parseNumeric, parseDate } from '../lib/data'
 import s from './Panel.module.css'
 
@@ -450,20 +450,13 @@ function DateFilter ({ col, ds, onFilterAdd, onFilterRemove }) {
 }
 
 // ─── Single column filter card ────────────────────────────────────────────────
-const TYPE_META = {
-  numeric: { label: '#', cls: 'typeBadgeNum'  },
-  date:    { label: 'D', cls: 'typeBadgeDate' },
-  boolean: { label: 'B', cls: 'typeBadgeBool' },
-  text:    { label: 'T', cls: 'typeBadgeCat'  },
-}
-
 function ColFilterCard ({ col, ds, pal, onFilterAdd, onFilterRemove }) {
   const [open, setOpen] = useState(false)
   const colType   = useMemo(() => detectColType(ds, col), [ds, col])
   const isActive  = col in (ds.filters || {})
   const vals      = ds.rows.map(r => r[col]).filter(v => v !== '' && v != null)
   const uniqCount = new Set(vals).size
-  const { label: typeLabel, cls: typeCls } = TYPE_META[colType] || TYPE_META.text
+  const { label: typeLabel, color: typeColor, bg: typeBg } = COL_TYPES[colType] || COL_TYPES.text
 
   const renderWidget = () => {
     if (colType === 'numeric') return <NumericFilter col={col} ds={ds} pal={pal} onFilterAdd={onFilterAdd} onFilterRemove={onFilterRemove} />
@@ -476,7 +469,7 @@ function ColFilterCard ({ col, ds, pal, onFilterAdd, onFilterRemove }) {
   return (
     <div className={s.fcCard + (isActive ? ' ' + s.fcCardActive : '')}>
       <div className={s.fcHd} onClick={() => setOpen(v => !v)}>
-        <span className={s.typeBadge + ' ' + s[typeCls]}>{typeLabel}</span>
+        <span className={s.typeBadge} style={{ color: typeColor, background: typeBg }}>{typeLabel}</span>
         <span className={s.fcName}>{col}</span>
         <span className={s.fcMeta}>{uniqCount.toLocaleString()} unique</span>
         {isActive && <span className={s.fcDot} />}
@@ -659,11 +652,11 @@ function StatCard ({ col, ds }) {
   const nonNull    = allVals.filter(v => v !== undefined && v !== null && v !== '')
   const missingCnt = allVals.length - nonNull.length
   const colType    = detectColType(ds, col)
-  const meta       = TYPE_META[colType]
+  const meta       = COL_TYPES[colType] || COL_TYPES.text
   return (
     <div className={s.statCard}>
       <div className={s.statHd}>
-        <span className={`${s.typeBadge} ${s[meta.cls]}`}>{meta.label}</span>
+        <span className={s.typeBadge} style={{ color: meta.color, background: meta.bg }}>{meta.label}</span>
         <span className={s.statName}>{col}</span>
         <span className={s.statMeta}>{nonNull.length.toLocaleString()}</span>
         {missingCnt > 0 && <span className={s.statMissing}>{missingCnt} missing</span>}

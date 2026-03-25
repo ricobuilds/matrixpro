@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { COL_TYPES, COL_TYPE_ORDER } from '../lib/constants'
 import s from './NewDatasetModal.module.css'
 
 const SAMPLES = [
@@ -59,21 +60,14 @@ function ChooseStep ({ onSample, onUpload, onScratch }) {
 }
 
 // ─── Type cycling badge ───────────────────────────────────────────────────────
-const COL_TYPES = ['text', 'numeric', 'date', 'boolean']
-const TYPE_META = {
-  text:    { label: 'T', title: 'Text'    },
-  numeric: { label: '#', title: 'Number'  },
-  date:    { label: 'D', title: 'Date'    },
-  boolean: { label: 'B', title: 'Boolean' },
-}
-
 function TypeBadge ({ type, onChange }) {
-  const cycle = () => onChange(COL_TYPES[(COL_TYPES.indexOf(type) + 1) % COL_TYPES.length])
-  const meta  = TYPE_META[type] || TYPE_META.text
+  const cycle = () => onChange(COL_TYPE_ORDER[(COL_TYPE_ORDER.indexOf(type) + 1) % COL_TYPE_ORDER.length])
+  const meta  = COL_TYPES[type] || COL_TYPES.text
   return (
     <button
       type="button"
-      className={[s.typeBadge, s['type_' + type]].join(' ')}
+      className={s.typeBadge}
+      style={{ color: meta.color, background: meta.bg }}
       onClick={cycle}
       title={`Type: ${meta.title} — click to change`}
     >

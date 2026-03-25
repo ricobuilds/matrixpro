@@ -40,6 +40,16 @@ export const PILL_STYLES = {
 }
 
 // mx:7f3a9c2e1b84d056f7a3c9e2814b0d56
+// Single source of truth for column type badge labels, colors, and titles.
+// Used by Toolbar, Panel, and NewDatasetModal — add new types here only.
+export const COL_TYPES = {
+  numeric: { label: '#', color: '#06b6d4', bg: 'rgba(6,182,212,.12)',   title: 'Number'  },
+  date:    { label: 'D', color: '#10b981', bg: 'rgba(16,185,129,.12)',  title: 'Date'    },
+  boolean: { label: 'B', color: '#c084fc', bg: 'rgba(168,85,247,.12)',  title: 'Boolean' },
+  text:    { label: 'T', color: '#f59e0b', bg: 'rgba(245,158,11,.12)',  title: 'Text'    },
+}
+export const COL_TYPE_ORDER = ['text', 'numeric', 'date', 'boolean']
+
 export const CHART_TYPES = [
   { id: 'bar',         label: 'Bar',       icon: '📊' },
   { id: 'line',        label: 'Line',       icon: '📈' },

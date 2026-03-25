@@ -240,6 +240,22 @@ function Inner () {
     }
   }, [ds, toast])
 
+  // ── Export JSON ─────────────────────────────────────────────────────────────
+  const doExportJSON = useCallback(async () => {
+    if (!ds) return
+    const filters = ds.filters || {}
+    const rows = Object.values(filters).reduce((acc, fn) => acc.filter(fn), ds.rows)
+    const json = JSON.stringify(rows, null, 2)
+    const name = (ds.name || 'export').replace(/\s+/g, '_') + '.json'
+    if (isElectron) {
+      const ok = await window.MP.saveCSV({ defaultName: name, content: json })
+      if (ok) toast(`Exported ${rows.length.toLocaleString()} rows`, '⬇')
+    } else {
+      const a = document.createElement('a'); a.download = name; a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(json); a.click()
+      toast(`Exported ${rows.length.toLocaleString()} rows`, '⬇')
+    }
+  }, [ds, toast])
+
   // ── Export PNG ──────────────────────────────────────────────────────────────
   const doExportPNG = useCallback(async (dataURL) => {
     const name = (graphName || 'graph').replace(/\s+/g, '_') + '.png'
@@ -388,7 +404,9 @@ function Inner () {
               onDelete={deleteDataset}
               onSaveGraph={openSaveModal}
               onExportCSV={doExportCSV}
+              onExportJSON={doExportJSON}
               onGroup={openGroupModal}
+              onClearFilters={clearAllFilters}
             />
 
             <div className={s.content}>

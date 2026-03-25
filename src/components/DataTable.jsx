@@ -5,9 +5,9 @@ import { PALETTES } from '../lib/constants'
 import s from './DataTable.module.css'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const ROW_H    = 32  // must match CSS td height
-const OVERSCAN = 20  // extra rows rendered above and below the viewport
-const MIN_COL_W = 50 // minimum column width when resizing
+const ROW_H     = 32  // must match CSS td height
+const OVERSCAN  = 20  // extra rows rendered above and below the viewport
+const MIN_COL_W = 50  // minimum column width when resizing
 const DEFAULT_COL_W = { numeric: 110, date: 150, boolean: 90, text: 130 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -53,11 +53,11 @@ export default function DataTable ({ ds, compact = false }) {
   const { state, dispatch } = useApp()
   const pal = PALETTES[state.palette]
 
+  // ── Scroll tracking ──────────────────────────────────────────────────────────
   const scrollRef  = useRef(null)
   const [scrollTop,  setScrollTop]  = useState(0)
   const [viewHeight, setViewHeight] = useState(600)
 
-  // Measure the scroll container so we know how many rows fit
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
@@ -68,32 +68,28 @@ export default function DataTable ({ ds, compact = false }) {
 
   const onScroll = useCallback(e => setScrollTop(e.currentTarget.scrollTop), [])
 
-  // Reset scroll to top whenever data or sort changes
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = 0
     setScrollTop(0)
   }, [ds.id, ds.rows, ds.filters, state.sortCol, state.sortDir])
 
-  // Visible columns (respects hiddenCols set in Toolbar)
+  // ── Derived data ─────────────────────────────────────────────────────────────
   const visibleCols = useMemo(() => {
     const hidden = new Set(ds.hiddenCols || [])
     return ds.cols.filter(c => !hidden.has(c))
   }, [ds.cols, ds.hiddenCols])
 
-  // Column types — memoised so header meta & cell rendering stay stable
   const colTypes = useMemo(() => {
     const out = {}
     ds.cols.forEach(col => { out[col] = detectColType(ds, col) })
     return out
   }, [ds])
 
-  // Sorted + filtered row list
   const rows = useMemo(() => {
     const filtered = applyFilters(ds.rows, ds.filters)
     return applySort(filtered, state.sortCol, state.sortDir, colTypes[state.sortCol])
   }, [ds.rows, ds.filters, state.sortCol, state.sortDir, colTypes])
 
-  // Numeric max per column (for inline bar backgrounds)
   const numMax = useMemo(() => {
     const out = {}
     ds.cols.forEach((col, ci) => {
@@ -104,13 +100,6 @@ export default function DataTable ({ ds, compact = false }) {
     })
     return out
   }, [ds, pal, colTypes])
-
-  // ── Virtual window (uses searchedRows so search filters the virtual set) ─────
-  const startIdx    = Math.max(0, Math.floor(scrollTop / ROW_H) - OVERSCAN)
-  const endIdx      = Math.min(searchedRows.length, Math.ceil((scrollTop + viewHeight) / ROW_H) + OVERSCAN)
-  const visibleRows = searchedRows.slice(startIdx, endIdx)
-  const topPad      = startIdx * ROW_H
-  const bottomPad   = Math.max(0, (searchedRows.length - endIdx) * ROW_H)
 
   // ── Search ───────────────────────────────────────────────────────────────────
   const [searchOpen,  setSearchOpen]  = useState(false)
@@ -134,7 +123,6 @@ export default function DataTable ({ ds, compact = false }) {
 
   const closeSearch = useCallback(() => { setSearchOpen(false); setSearchQuery('') }, [])
 
-  // Rows after search (applied on top of existing filters + sort)
   const searchedRows = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
     if (!q) return rows
@@ -143,14 +131,20 @@ export default function DataTable ({ ds, compact = false }) {
     )
   }, [rows, searchQuery, visibleCols])
 
-  // ── Column resizing ──────────────────────────────────────────────────────────
-  const [colWidths,    setColWidths]    = useState(() => ds.colWidths || {})
-  const [draggingCol,  setDraggingCol]  = useState(null)
-  const widthsRef = useRef(colWidths)  // always-current snapshot for use in closures
-  widthsRef.current = colWidths
-  const dragRef   = useRef(null)       // { col, startX, startWidth }
+  // ── Virtual window ───────────────────────────────────────────────────────────
+  const startIdx    = Math.max(0, Math.floor(scrollTop / ROW_H) - OVERSCAN)
+  const endIdx      = Math.min(searchedRows.length, Math.ceil((scrollTop + viewHeight) / ROW_H) + OVERSCAN)
+  const visibleRows = searchedRows.slice(startIdx, endIdx)
+  const topPad      = startIdx * ROW_H
+  const bottomPad   = Math.max(0, (searchedRows.length - endIdx) * ROW_H)
 
-  // Sync when the user switches dataset tabs
+  // ── Column resizing ──────────────────────────────────────────────────────────
+  const [colWidths,   setColWidths]  = useState(() => ds.colWidths || {})
+  const [draggingCol, setDraggingCol] = useState(null)
+  const widthsRef = useRef(colWidths)
+  widthsRef.current = colWidths
+  const dragRef = useRef(null)
+
   useEffect(() => { setColWidths(ds.colWidths || {}) }, [ds.id])
 
   const colW = useCallback(
@@ -161,10 +155,9 @@ export default function DataTable ({ ds, compact = false }) {
   const startResize = useCallback((e, col) => {
     e.preventDefault()
     e.stopPropagation()
-
     dragRef.current = { col, startX: e.clientX, startWidth: colW(col) }
     setDraggingCol(col)
-    document.body.style.cursor    = 'col-resize'
+    document.body.style.cursor     = 'col-resize'
     document.body.style.userSelect = 'none'
 
     const onMouseMove = ev => {
@@ -172,7 +165,6 @@ export default function DataTable ({ ds, compact = false }) {
       const newWidth = Math.max(MIN_COL_W, startWidth + (ev.clientX - startX))
       setColWidths(prev => ({ ...prev, [c]: newWidth }))
     }
-
     const onMouseUp = () => {
       document.removeEventListener('mousemove', onMouseMove)
       document.removeEventListener('mouseup',   onMouseUp)
@@ -182,13 +174,12 @@ export default function DataTable ({ ds, compact = false }) {
       dragRef.current = null
       dispatch({ type: 'UPDATE_DS', id: ds.id, patch: { colWidths: widthsRef.current } })
     }
-
     document.addEventListener('mousemove', onMouseMove)
     document.addEventListener('mouseup',   onMouseUp)
   }, [colW, ds.id, dispatch])
 
-  const sortBy = col => dispatch({ type: 'SET_SORT', col })
-
+  // ── Render ───────────────────────────────────────────────────────────────────
+  const sortBy      = col => dispatch({ type: 'SET_SORT', col })
   const activeQuery = searchQuery.trim()
 
   return (
@@ -237,10 +228,10 @@ export default function DataTable ({ ds, compact = false }) {
             <tr>
               <th><div className={s.thi + ' ' + s.idx}>#</div></th>
               {visibleCols.map(col => {
-                const ct = colTypes[col]
-                const vals = ds.rows.map(r => r[col]).filter(v => v !== undefined && v !== '')
+                const ct       = colTypes[col]
+                const vals     = ds.rows.map(r => r[col]).filter(v => v !== undefined && v !== '')
                 const isActive = state.sortCol === col
-                const arr = isActive ? (state.sortDir === 1 ? ' ↑' : ' ↓') : ''
+                const arr      = isActive ? (state.sortDir === 1 ? ' ↑' : ' ↓') : ''
                 let metaEl = null
                 if (ct === 'numeric') {
                   const ns = vals.map(parseNumeric)
@@ -267,7 +258,6 @@ export default function DataTable ({ ds, compact = false }) {
                       </div>
                       <div className={s.thMeta}>{metaEl}</div>
                     </div>
-                    {/* Resize handle */}
                     <div
                       className={`${s.resizeHandle}${draggingCol === col ? ' ' + s.resizeHandleActive : ''}`}
                       onMouseDown={e => startResize(e, col)}
@@ -341,11 +331,12 @@ export default function DataTable ({ ds, compact = false }) {
             )}
           </>
         )}
-        <span className={s.filtered}>· {(endIdx - startIdx).toLocaleString()} rendered</span>
+        <span className={s.filtered}> · {(endIdx - startIdx).toLocaleString()} rendered</span>
         {!searchOpen && (
           <span className={s.searchHint}>⌘F to search</span>
         )}
       </div>
+
     </div>
   )
 }

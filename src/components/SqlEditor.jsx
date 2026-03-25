@@ -115,8 +115,14 @@ function SchemaPane ({ tabs, tableMap, onInsert }) {
             </div>
 
             {open && ds.cols.map(col => {
-              const isNum = ds.rows.slice(0, 10).some(r => r[col] !== '' && r[col] != null) &&
-                ds.rows.slice(0, 10).every(r => r[col] === '' || r[col] == null || !isNaN(parseFloat(r[col])))
+              const sample = ds.rows.slice(0, 10).filter(r => r[col] !== '' && r[col] != null)
+              const isNum  = sample.length > 0 && sample.every(r => !isNaN(parseFloat(r[col])))
+              const isDate = !isNum && sample.length >= 2 && sample.every(r => {
+                const DATE_RE = [/^\d{4}-\d{2}-\d{2}/,/^\d{1,2}\/\d{1,2}\/\d{2,4}$/,/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s/i]
+                return DATE_RE.some(re => re.test(String(r[col]).trim()))
+              })
+              const badge = isNum ? '#' : isDate ? 'D' : 'A'
+              const cls   = isNum ? s.schemaTypeNum : isDate ? s.schemaTypeDate : s.schemaTypeCat
               return (
                 <div
                   key={col}
@@ -124,9 +130,7 @@ function SchemaPane ({ tabs, tableMap, onInsert }) {
                   onClick={() => onInsert(`"${col}"`)}
                   title={`Insert "${col}"`}
                 >
-                  <span className={s.schemaType + ' ' + (isNum ? s.schemaTypeNum : s.schemaTypeCat)}>
-                    {isNum ? '#' : 'A'}
-                  </span>
+                  <span className={s.schemaType + ' ' + cls}>{badge}</span>
                   <span className={s.schemaColName}>{col}</span>
                 </div>
               )

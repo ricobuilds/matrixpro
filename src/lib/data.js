@@ -13,10 +13,11 @@ export function fmtN (n) {
   return Number.isInteger(n) ? n.toLocaleString() : parseFloat(n).toFixed(2)
 }
 
-export function fmtCell (v) {
+export function fmtCell (v, colType) {
   if (v === undefined || v === null || v === '') return '—'
   const pill = PILL_STYLES[String(v)]
   if (pill) return { type: 'pill', bg: pill[0], color: pill[1], label: String(v) }
+  if (colType === 'date') return { type: 'date', label: fmtDate(v) }
   const n = parseFloat(v)
   if (!isNaN(n) && String(v).trim() !== '') return { type: 'num', label: fmtN(n) }
   return { type: 'text', label: String(v) }
@@ -24,7 +25,42 @@ export function fmtCell (v) {
 
 // ─── Column type detection ───────────────────────────────────────────────────
 export function isNumericCol (ds, col) {
-  return ds.rows.slice(0, 20).every(r => !isNaN(parseFloat(r[col])))
+  const sample = ds.rows.slice(0, 20).filter(r => r[col] !== '' && r[col] != null)
+  return sample.length > 0 && sample.every(r => !isNaN(parseFloat(r[col])))
+}
+
+const DATE_RE = [
+  /^\d{4}-\d{2}-\d{2}(T[\d:.Z+-]*)?$/,                                                          // 2023-01-15 / ISO datetime
+  /^\d{1,2}\/\d{1,2}\/\d{2,4}$/,                                                                 // 1/15/2023
+  /^\d{1,2}-\d{1,2}-\d{4}$/,                                                                     // 01-15-2023
+  /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4}$/i,                    // Jan 15, 2023
+  /^\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}$/i,                       // 15 Jan 2023
+  /^(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}$/i,
+]
+
+export function isDateCol (ds, col) {
+  const sample = ds.rows.slice(0, 20).map(r => r[col]).filter(v => v !== '' && v != null)
+  return sample.length >= 2 && sample.every(v => DATE_RE.some(re => re.test(String(v).trim())))
+}
+
+// 'numeric' | 'date' | 'text'
+export function detectColType (ds, col) {
+  if (isNumericCol(ds, col)) return 'numeric'
+  if (isDateCol(ds, col))    return 'date'
+  return 'text'
+}
+
+// Parse a date string safely (avoids UTC midnight timezone shift for plain dates)
+export function parseDate (v) {
+  const s = String(v).trim()
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date(s + 'T12:00:00')
+  return new Date(s)
+}
+
+export function fmtDate (v) {
+  const d = parseDate(v)
+  if (isNaN(d.getTime())) return String(v)
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 // ─── Make dataset object ─────────────────────────────────────────────────────

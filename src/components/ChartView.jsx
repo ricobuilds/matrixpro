@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useCallback } from 'react'
 import { Chart, registerables } from 'chart.js'
 import { useApp } from '../store/AppContext'
 import { PALETTES } from '../lib/constants'
-import { isNumericCol } from '../lib/data'
+import { isNumericCol, isDateCol, parseDate } from '../lib/data'
 import DataTable from './DataTable'
 import s from './ChartView.module.css'
 
@@ -72,6 +72,7 @@ function buildChartData ({ ds, xCol, yCol, y2Col, szCol, ct, pal, filters, aggFn
   const allRows = Object.values(filters).reduce((acc, fn) => acc.filter(fn), ds.rows)
   const rows    = allRows.slice(0, 500)
   const isXnum  = rows.slice(0, 20).every(r => !isNaN(parseFloat(r[xCol])))
+  const isXdate = !isXnum && isDateCol(ds, xCol)
   const isLine  = ct === 'line', isArea = ct === 'area'
   const isBar   = ct === 'bar',  isStacked = ct === 'bar-stacked'
   const isBarType = isBar || isStacked
@@ -186,7 +187,8 @@ function buildChartData ({ ds, xCol, yCol, y2Col, szCol, ct, pal, filters, aggFn
     if (isBar && y2IsCat) {
       // Categorical Y2 on bar → grouped multi-series bars (one series per Y2 value)
       const groups = [...new Set(rows.map(r => String(r[y2Col])))].slice(0, 8)
-      const labSet = [...new Set(rows.map(r => String(r[xCol])))].slice(0, 24)
+      const rawLabSet = [...new Set(rows.map(r => String(r[xCol])))].slice(0, 24)
+      const labSet = isXdate ? rawLabSet.sort((a, b) => parseDate(a) - parseDate(b)) : rawLabSet
       labels = labSet
       datasets = groups.map((g, gi) => {
         const agg = {}
@@ -214,8 +216,9 @@ function buildChartData ({ ds, xCol, yCol, y2Col, szCol, ct, pal, filters, aggFn
           agg2[k].push(parseFloat(r[y2Col]) || 0)
         }
       })
-      labels = Object.keys(agg).slice(0, 28)
-      const data = labels.map(k => +applyAgg(agg[k], aggFn).toFixed(2))
+      const rawLabels = Object.keys(agg).slice(0, 28)
+      labels = isXdate ? rawLabels.sort((a, b) => parseDate(a) - parseDate(b)) : rawLabels
+      const data = labels.map(k => +applyAgg(agg[k] || [], aggFn).toFixed(2))
       const hasNumY2 = y2Col && !y2IsCat
 
       datasets = [{

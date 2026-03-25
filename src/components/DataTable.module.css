@@ -11,6 +11,7 @@
 .idx       { min-width: 40px; max-width: 40px; align-items: center; padding: 8px 4px; }
 .num_col   { min-width: 110px; }
 .cat_col   { min-width: 120px; }
+.date_col  { min-width: 148px; }
 .thName    { display: flex; align-items: center; gap: 4px; overflow: hidden; }
 .thLabel   { font-size: 12px; font-weight: 500; color: var(--tx1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sortBtn   { cursor: pointer; color: var(--tx3); border-radius: 3px; padding: 1px 2px; font-size: 11px; flex-shrink: 0; transition: color var(--ease); }
@@ -29,6 +30,7 @@
 .table tr:hover td { background: var(--bg4); }
 .tdIdx { color: var(--tx3) !important; text-align: left; font: 11px/1 var(--m); }
 .num   { color: var(--tx1); font-family: var(--m); }
+.date  { color: var(--cyan); font-family: var(--m); font-size: 12px; }
 .cellBar {
   position: absolute; left: 0; top: 0; height: 100%;
   pointer-events: none; border-radius: 0 2px 2px 0; opacity: .11;

@@ -105,8 +105,9 @@
   padding: 1.5px 0;
   flex-shrink: 0;
 }
-.schemaTypeNum { color: var(--cyan);  background: rgba(6,182,212,.12);  }
-.schemaTypeCat { color: var(--amber); background: rgba(245,158,11,.12); }
+.schemaTypeNum  { color: var(--cyan);  background: rgba(6,182,212,.12);  }
+.schemaTypeCat  { color: var(--amber); background: rgba(245,158,11,.12); }
+.schemaTypeDate { color: var(--green); background: rgba(16,185,129,.12); }
 
 .schemaColName {
   font-size: 11.5px;

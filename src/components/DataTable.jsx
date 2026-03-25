@@ -5,8 +5,10 @@ import { PALETTES } from '../lib/constants'
 import s from './DataTable.module.css'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const ROW_H   = 32   // must match CSS td height
+const ROW_H    = 32  // must match CSS td height
 const OVERSCAN = 20  // extra rows rendered above and below the viewport
+const MIN_COL_W = 50 // minimum column width when resizing
+const DEFAULT_COL_W = { numeric: 110, date: 150, boolean: 90, text: 130 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function applyFilters (rows, filters) {
@@ -110,6 +112,50 @@ export default function DataTable ({ ds, compact = false }) {
   const topPad      = startIdx * ROW_H
   const bottomPad   = Math.max(0, (rows.length - endIdx) * ROW_H)
 
+  // ── Column resizing ──────────────────────────────────────────────────────────
+  const [colWidths,    setColWidths]    = useState(() => ds.colWidths || {})
+  const [draggingCol,  setDraggingCol]  = useState(null)
+  const widthsRef = useRef(colWidths)  // always-current snapshot for use in closures
+  widthsRef.current = colWidths
+  const dragRef   = useRef(null)       // { col, startX, startWidth }
+
+  // Sync when the user switches dataset tabs
+  useEffect(() => { setColWidths(ds.colWidths || {}) }, [ds.id])
+
+  const colW = useCallback(
+    col => colWidths[col] ?? (DEFAULT_COL_W[colTypes[col]] || 130),
+    [colWidths, colTypes]
+  )
+
+  const startResize = useCallback((e, col) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    dragRef.current = { col, startX: e.clientX, startWidth: colW(col) }
+    setDraggingCol(col)
+    document.body.style.cursor    = 'col-resize'
+    document.body.style.userSelect = 'none'
+
+    const onMouseMove = ev => {
+      const { col: c, startX, startWidth } = dragRef.current
+      const newWidth = Math.max(MIN_COL_W, startWidth + (ev.clientX - startX))
+      setColWidths(prev => ({ ...prev, [c]: newWidth }))
+    }
+
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup',   onMouseUp)
+      document.body.style.cursor     = ''
+      document.body.style.userSelect = ''
+      setDraggingCol(null)
+      dragRef.current = null
+      dispatch({ type: 'UPDATE_DS', id: ds.id, patch: { colWidths: widthsRef.current } })
+    }
+
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup',   onMouseUp)
+  }, [colW, ds.id, dispatch])
+
   const sortBy = col => dispatch({ type: 'SET_SORT', col })
 
   return (
@@ -121,11 +167,7 @@ export default function DataTable ({ ds, compact = false }) {
           <colgroup>
             <col style={{ width: 48 }} />
             {visibleCols.map(col => (
-              <col key={col} style={{
-                width: colTypes[col] === 'numeric' ? 120
-                     : colTypes[col] === 'date'    ? 160
-                     : 160,
-              }} />
+              <col key={col} style={{ width: colW(col) }} />
             ))}
           </colgroup>
 
@@ -152,7 +194,7 @@ export default function DataTable ({ ds, compact = false }) {
                 }
                 return (
                   <th key={col}>
-                    <div className={s.thi + ' ' + (ct === 'numeric' ? s.num_col : ct === 'date' ? s.date_col : s.cat_col)}>
+                    <div className={s.thi}>
                       <div className={s.thName}>
                         <span className={s.thLabel}>{col}</span>
                         <span
@@ -164,6 +206,12 @@ export default function DataTable ({ ds, compact = false }) {
                       </div>
                       <div className={s.thMeta}>{metaEl}</div>
                     </div>
+                    {/* Resize handle */}
+                    <div
+                      className={`${s.resizeHandle}${draggingCol === col ? ' ' + s.resizeHandleActive : ''}`}
+                      onMouseDown={e => startResize(e, col)}
+                      onClick={e => e.stopPropagation()}
+                    />
                   </th>
                 )
               })}

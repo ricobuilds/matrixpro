@@ -105,12 +105,43 @@ export default function DataTable ({ ds, compact = false }) {
     return out
   }, [ds, pal, colTypes])
 
-  // ── Virtual window ───────────────────────────────────────────────────────────
+  // ── Virtual window (uses searchedRows so search filters the virtual set) ─────
   const startIdx    = Math.max(0, Math.floor(scrollTop / ROW_H) - OVERSCAN)
-  const endIdx      = Math.min(rows.length, Math.ceil((scrollTop + viewHeight) / ROW_H) + OVERSCAN)
-  const visibleRows = rows.slice(startIdx, endIdx)
+  const endIdx      = Math.min(searchedRows.length, Math.ceil((scrollTop + viewHeight) / ROW_H) + OVERSCAN)
+  const visibleRows = searchedRows.slice(startIdx, endIdx)
   const topPad      = startIdx * ROW_H
-  const bottomPad   = Math.max(0, (rows.length - endIdx) * ROW_H)
+  const bottomPad   = Math.max(0, (searchedRows.length - endIdx) * ROW_H)
+
+  // ── Search ───────────────────────────────────────────────────────────────────
+  const [searchOpen,  setSearchOpen]  = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const searchInputRef = useRef(null)
+
+  useEffect(() => {
+    const handler = e => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+        e.preventDefault()
+        if (searchOpen) { searchInputRef.current?.select() }
+        else            { setSearchOpen(true) }
+      }
+      if (e.key === 'Escape' && searchOpen) { setSearchOpen(false); setSearchQuery('') }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [searchOpen])
+
+  useEffect(() => { if (searchOpen) searchInputRef.current?.focus() }, [searchOpen])
+
+  const closeSearch = useCallback(() => { setSearchOpen(false); setSearchQuery('') }, [])
+
+  // Rows after search (applied on top of existing filters + sort)
+  const searchedRows = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return rows
+    return rows.filter(row =>
+      visibleCols.some(col => String(row[col] ?? '').toLowerCase().includes(q))
+    )
+  }, [rows, searchQuery, visibleCols])
 
   // ── Column resizing ──────────────────────────────────────────────────────────
   const [colWidths,    setColWidths]    = useState(() => ds.colWidths || {})
@@ -158,8 +189,38 @@ export default function DataTable ({ ds, compact = false }) {
 
   const sortBy = col => dispatch({ type: 'SET_SORT', col })
 
+  const activeQuery = searchQuery.trim()
+
   return (
     <div className={s.wrap}>
+
+      {/* ── Search bar ── */}
+      {searchOpen && (
+        <div className={s.searchBar}>
+          <svg className={s.searchIco} width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l3.5 3.5"/>
+          </svg>
+          <input
+            ref={searchInputRef}
+            className={s.searchInput}
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            onKeyDown={e => e.key === 'Escape' && closeSearch()}
+            placeholder="Find in table…"
+          />
+          {activeQuery && (
+            <span className={`${s.searchCount}${searchedRows.length === 0 ? ' ' + s.searchNoMatch : ''}`}>
+              {searchedRows.length === 0 ? 'No matches' : `${searchedRows.length.toLocaleString()} rows`}
+            </span>
+          )}
+          <button className={s.searchClose} onClick={closeSearch} title="Close (Esc)">
+            <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <path d="M1.5 1.5l7 7M8.5 1.5l-7 7"/>
+            </svg>
+          </button>
+        </div>
+      )}
+
       <div className={s.scroll} ref={scrollRef} onScroll={onScroll}>
         <table className={s.table}>
 
@@ -263,11 +324,27 @@ export default function DataTable ({ ds, compact = false }) {
 
       {/* ── Footer ── */}
       <div className={s.footer}>
-        <b>{rows.length.toLocaleString()}</b> rows
-        {rows.length < ds.rows.length && (
-          <span className={s.filtered}> (filtered from {ds.rows.length.toLocaleString()})</span>
+        {activeQuery ? (
+          <>
+            <b>{searchedRows.length.toLocaleString()}</b>
+            {searchedRows.length === 1 ? ' match' : ' matches'}
+            <span className={s.filtered}> for "{activeQuery}"</span>
+            {rows.length < ds.rows.length && (
+              <span className={s.filtered}> · {rows.length.toLocaleString()} filtered</span>
+            )}
+          </>
+        ) : (
+          <>
+            <b>{rows.length.toLocaleString()}</b> rows
+            {rows.length < ds.rows.length && (
+              <span className={s.filtered}> (filtered from {ds.rows.length.toLocaleString()})</span>
+            )}
+          </>
         )}
         <span className={s.filtered}>· {(endIdx - startIdx).toLocaleString()} rendered</span>
+        {!searchOpen && (
+          <span className={s.searchHint}>⌘F to search</span>
+        )}
       </div>
     </div>
   )

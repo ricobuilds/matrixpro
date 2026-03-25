@@ -1,4 +1,4 @@
-.wrap   { display: flex; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
+.wrap   { display: flex; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; position: relative; }
 .scroll { flex: 1; overflow: auto; min-height: 0; }
 .table  { width: 100%; border-collapse: collapse; table-layout: fixed; }
 
@@ -59,6 +59,36 @@
   pointer-events: none; border-radius: 0 2px 2px 0; opacity: .11;
 }
 
+/* ── Search bar ──────────────────────────────────────────────────────────── */
+.searchBar {
+  position: absolute; top: 8px; right: 14px; z-index: 20;
+  display: flex; align-items: center; gap: 7px;
+  background: var(--bg2); border: 1px solid var(--bd2); border-radius: 10px;
+  padding: 7px 8px 7px 11px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.4), 0 0 0 1px rgba(99,102,241,.1);
+  min-width: 260px;
+  animation: searchIn .13s ease;
+}
+@keyframes searchIn {
+  from { opacity: 0; transform: translateY(-5px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+.searchIco   { color: var(--tx3); flex-shrink: 0; }
+.searchInput {
+  flex: 1; min-width: 0; background: none; border: none; outline: none;
+  font: 13px/1 var(--f); color: var(--tx1);
+}
+.searchInput::placeholder { color: var(--tx3); }
+.searchCount { font-size: 11px; color: var(--tx3); font-family: var(--m); white-space: nowrap; flex-shrink: 0; }
+.searchNoMatch { color: #fda4af !important; }
+.searchClose {
+  width: 22px; height: 22px; border-radius: 5px; flex-shrink: 0;
+  background: none; border: none; color: var(--tx3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .1s;
+}
+.searchClose:hover { background: var(--bg5); color: var(--tx1); }
+
 .footer {
   padding: 5px 14px; border-top: 1px solid var(--bd1);
   background: var(--bg3); font-size: 11px; color: var(--tx3);
@@ -66,6 +96,7 @@
 }
 .footer b  { color: var(--tx2); font-family: var(--m); font-weight: 500; }
 .filtered  { color: var(--tx3); }
+.searchHint { margin-left: auto; font-size: 10px; color: var(--tx3); font-family: var(--m); opacity: .5; }
 
 /* .td inherits from .table td above */
 .td { }

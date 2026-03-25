@@ -543,55 +543,169 @@ function FiltersTab ({ ds, onFilterAdd, onFilterRemove, onFilterClear }) {
   )
 }
 
+// ─── Stats sub-components ─────────────────────────────────────────────────────
+function NumericStats ({ vals }) {
+  const nums = vals.map(parseNumeric).filter(n => !isNaN(n))
+  if (!nums.length) return null
+  const sorted = [...nums].sort((a, b) => a - b)
+  const n      = sorted.length
+  const sum    = nums.reduce((a, b) => a + b, 0)
+  const mean   = sum / n
+  const q1     = sorted[Math.floor(n * 0.25)]
+  const median = sorted[Math.floor(n * 0.5)]
+  const q3     = sorted[Math.floor(n * 0.75)]
+  const std    = Math.sqrt(nums.reduce((a, b) => a + (b - mean) ** 2, 0) / n)
+  const stats  = [
+    ['Min', Math.min(...nums)], ['Max', Math.max(...nums)],
+    ['Mean', mean],             ['Median', median],
+    ['Q1', q1],                 ['Q3', q3],
+    ['Sum', sum],               ['Std', std],
+  ]
+  return (
+    <div className={s.stGrid}>
+      {stats.map(([l, v]) => (
+        <div key={l} className={s.stCell}>
+          <div className={s.stLbl}>{l}</div>
+          <div className={s.stVal}>{fmtN(v)}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function CatStats ({ vals, total }) {
+  const cnt = {}
+  vals.forEach(v => { cnt[v] = (cnt[v] || 0) + 1 })
+  const top = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 6)
+  const max = top[0]?.[1] || 1
+  return (
+    <div className={s.catStatList}>
+      {top.map(([v, c]) => (
+        <div key={v} className={s.catStatRow}>
+          <span className={s.catStatName}>{v}</span>
+          <div className={s.catStatBarWrap}>
+            <div className={s.catStatFill} style={{ width: `${(c / max) * 100}%` }} />
+          </div>
+          <span className={s.catStatCnt}>{c} · {((c / total) * 100).toFixed(1)}%</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function BoolStats ({ vals, total }) {
+  const cnt = {}
+  vals.forEach(v => { const k = String(v); cnt[k] = (cnt[k] || 0) + 1 })
+  const entries = Object.entries(cnt).sort((a, b) => b[1] - a[1])
+  return (
+    <div className={s.boolStatList}>
+      {entries.map(([v, c]) => (
+        <div key={v} className={s.boolStatRow}>
+          <span className={s.boolStatLbl}>{v}</span>
+          <div className={s.boolStatBarWrap}>
+            <div className={s.boolStatFill} style={{ width: `${(c / total) * 100}%` }} />
+          </div>
+          <span className={s.boolStatCnt}>{c} · {((c / total) * 100).toFixed(1)}%</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function DateStats ({ vals }) {
+  const dates = vals.map(v => parseDate(v)).filter(d => !isNaN(d.getTime()))
+  if (dates.length < 2) return null
+  const times    = dates.map(d => d.getTime())
+  const minD     = new Date(Math.min(...times))
+  const maxD     = new Date(Math.max(...times))
+  const spanDays = Math.round((Math.max(...times) - Math.min(...times)) / 86400000)
+  const fmt      = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  const yearCnt  = {}
+  dates.forEach(d => { const y = d.getFullYear(); yearCnt[y] = (yearCnt[y] || 0) + 1 })
+  const years        = Object.entries(yearCnt).sort((a, b) => +a[0] - +b[0])
+  const maxYearCount = Math.max(...years.map(([, c]) => c))
+  return (
+    <>
+      <div className={s.stGrid}>
+        <div className={s.stCell}>
+          <div className={s.stLbl}>Earliest</div>
+          <div className={s.stVal}>{fmt(minD)}</div>
+        </div>
+        <div className={s.stCell}>
+          <div className={s.stLbl}>Latest</div>
+          <div className={s.stVal}>{fmt(maxD)}</div>
+        </div>
+        <div className={s.stCellFull}>
+          <div className={s.stLbl}>Span</div>
+          <div className={s.stVal}>{spanDays.toLocaleString()} days</div>
+        </div>
+      </div>
+      {years.length > 1 && (
+        <div className={s.dateYearDist}>
+          {years.map(([y, c]) => (
+            <div key={y} className={s.dateYearBar}>
+              <div className={s.dateYearFill} style={{ height: `${(c / maxYearCount) * 100}%` }} />
+              <span className={s.dateYearLbl}>{String(y).slice(2)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
+function StatCard ({ col, ds }) {
+  const allVals    = ds.rows.map(r => r[col])
+  const nonNull    = allVals.filter(v => v !== undefined && v !== null && v !== '')
+  const missingCnt = allVals.length - nonNull.length
+  const colType    = detectColType(ds, col)
+  const meta       = TYPE_META[colType]
+  return (
+    <div className={s.statCard}>
+      <div className={s.statHd}>
+        <span className={`${s.typeBadge} ${s[meta.cls]}`}>{meta.label}</span>
+        <span className={s.statName}>{col}</span>
+        <span className={s.statMeta}>{nonNull.length.toLocaleString()}</span>
+        {missingCnt > 0 && <span className={s.statMissing}>{missingCnt} missing</span>}
+      </div>
+      <div className={s.statBody}>
+        {colType === 'numeric' && <NumericStats vals={nonNull} />}
+        {colType === 'boolean' && <BoolStats vals={nonNull} total={nonNull.length} />}
+        {colType === 'date'    && <DateStats vals={nonNull} />}
+        {colType === 'text'    && <CatStats vals={nonNull} total={allVals.length} />}
+      </div>
+    </div>
+  )
+}
+
 // ─── Stats tab ────────────────────────────────────────────────────────────────
 function StatsTab ({ ds }) {
+  const missingCells = ds.rows.reduce((sum, row) =>
+    sum + ds.cols.filter(c => row[c] === undefined || row[c] === null || row[c] === '').length
+  , 0)
   return (
-    <div className={s.sec} style={{ paddingTop: 12, paddingBottom: 12 }}>
-      <div className={s.lbl}>Column statistics</div>
-      {ds.cols.map(col => {
-        const vals = ds.rows.map(r => r[col]).filter(v => v !== undefined && v !== '')
-        const iN   = isNumericCol(ds, col)
-        return (
-          <div key={col} className={s.cst} style={{ marginBottom: 5 }}>
-            <div className={s.cstTop}>
-              <span className={s.cstName}>{col}</span>
-              <span className={s.cstCnt}>{iN ? vals.length.toLocaleString() : `${new Set(vals).size} unique`}</span>
-            </div>
-            {iN ? (() => {
-              const nums = vals.map(Number)
-              const sum  = nums.reduce((a, b) => a + b, 0)
-              const mean = sum / nums.length
-              const sorted = [...nums].sort((a, b) => a - b)
-              const med  = sorted[Math.floor(sorted.length / 2)]
-              const std  = Math.sqrt(nums.reduce((a, b) => a + (b - mean) ** 2, 0) / nums.length)
-              const stats = [['Min', Math.min(...nums)], ['Max', Math.max(...nums)], ['Mean', mean], ['Median', med], ['Sum', sum], ['Std', std]]
-              return (
-                <div className={s.stGrid}>
-                  {stats.map(([l, v]) => (
-                    <div key={l} className={s.stCell}>
-                      <div className={s.stLbl}>{l}</div>
-                      <div className={s.stVal}>{fmtN(v)}</div>
-                    </div>
-                  ))}
-                </div>
-              )
-            })() : (() => {
-              const cnt = {}
-              vals.forEach(v => { cnt[v] = (cnt[v] || 0) + 1 })
-              const top = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 5)
-              return (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 6 }}>
-                  {top.map(([v, c]) => (
-                    <span key={v} style={{ background: 'var(--bg5)', padding: '2px 7px', borderRadius: 4, fontSize: 10, color: 'var(--tx2)' }}>
-                      {v} <b style={{ color: 'var(--tx3)', fontWeight: 500 }}>{c}</b>
-                    </span>
-                  ))}
-                </div>
-              )
-            })()}
+    <div className={s.statWrap}>
+      <div className={s.statSummary}>
+        <div className={s.statSumGrid}>
+          <div className={s.statSumCell}>
+            <div className={s.statSumVal}>{ds.rows.length.toLocaleString()}</div>
+            <div className={s.statSumLbl}>Rows</div>
           </div>
-        )
-      })}
+          <div className={s.statSumCell}>
+            <div className={s.statSumVal}>{ds.cols.length}</div>
+            <div className={s.statSumLbl}>Columns</div>
+          </div>
+          <div className={s.statSumCell}>
+            <div className={s.statSumVal}>{missingCells > 0 ? missingCells.toLocaleString() : '—'}</div>
+            <div className={s.statSumLbl}>Missing</div>
+          </div>
+        </div>
+      </div>
+      <div className={s.sep} />
+      <div className={s.sec} style={{ paddingBottom: 14 }}>
+        <div className={s.lbl}>Column statistics</div>
+        {ds.cols.map(col => <StatCard key={col} col={col} ds={ds} />)}
+      </div>
     </div>
   )
 }

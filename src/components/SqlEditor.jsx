@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useApp } from '../store/AppContext'
 import { makeDS, detectColType } from '../lib/data'
+import { COL_TYPES } from '../lib/constants'
 import { useToast } from './Toast'
 import s from './SqlEditor.module.css'
 
@@ -115,9 +116,8 @@ function SchemaPane ({ tabs, tableMap, onInsert }) {
             </div>
 
             {open && ds.cols.map(col => {
-              const ct    = detectColType(ds, col)
-              const badge = ct === 'numeric' ? '#' : ct === 'date' ? 'D' : ct === 'boolean' ? 'B' : 'T'
-              const cls   = ct === 'numeric' ? s.schemaTypeNum : ct === 'date' ? s.schemaTypeDate : ct === 'boolean' ? s.schemaTypeBool : s.schemaTypeCat
+              const ct  = detectColType(ds, col)
+              const { label, color, bg } = COL_TYPES[ct] || COL_TYPES.text
               return (
                 <div
                   key={col}
@@ -125,7 +125,7 @@ function SchemaPane ({ tabs, tableMap, onInsert }) {
                   onClick={() => onInsert(`"${col}"`)}
                   title={`Insert "${col}"`}
                 >
-                  <span className={s.schemaType + ' ' + cls}>{badge}</span>
+                  <span className={s.schemaType} style={{ color, background: bg }}>{label}</span>
                   <span className={s.schemaColName}>{col}</span>
                 </div>
               )

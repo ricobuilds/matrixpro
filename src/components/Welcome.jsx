@@ -50,7 +50,7 @@ export default function Welcome({ onSample, onUpload, onScratch }) {
           <div className={s.ico}>📂</div>
           <div className={s.cardBody}>
             <div className={s.ct}>Upload file</div>
-            <div className={s.cd}>CSV or TSV · drag & drop or ⌘O</div>
+            <div className={s.cd}>Drag & drop a local dataset</div>
           </div>
         </div>
         <div className={[s.card, s.scratchCard].join(' ')} onClick={onScratch}>

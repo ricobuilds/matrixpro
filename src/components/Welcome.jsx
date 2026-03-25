@@ -13,7 +13,7 @@ export default function Welcome ({ onSample, onUpload }) {
       <div className={s.mark}>⬡</div>
       <h1 className={s.h}>Open a dataset</h1>
       <p className={s.sub}>
-        Drop a CSV or TSV file anywhere, upload from the sidebar,<br />
+        Drop a CSV or TSV file anywhere, upload a local file with ⌘+O,<br />
         or start with a sample dataset below.
       </p>
 

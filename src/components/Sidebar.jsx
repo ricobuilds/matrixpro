@@ -4,41 +4,21 @@ import s from './Sidebar.module.css'
 
 export default function Sidebar () {
   const { state, dispatch } = useApp()
-  const [q, setQ]               = useState('')
-  const [collapsed, setCollapsed] = useState(false)
+  const [q, setQ] = useState('')
 
-  const filtered = state.tabs.filter(t =>
+  const collapsed = state.sidebarCollapsed
+  const filtered  = state.tabs.filter(t =>
     t.name.toLowerCase().includes(q.toLowerCase())
   )
 
   return (
     <aside className={[s.sidebar, collapsed && s.sidebarCollapsed].filter(Boolean).join(' ')}>
-      {/* Traffic-light zone */}
-      <div className={s.traffic}>
-        {!collapsed && (
-          <div className={s.wordmark}>
-            <span className={s.wordmarkMatrix}>Matrix</span>
-            <span className={s.proBadge}>PRO</span>
-          </div>
-        )}
-        {!collapsed && (
-          <button
-            className={s.collapseBtn}
-            onClick={() => setCollapsed(true)}
-            title="Collapse sidebar"
-          >
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M10 3l-5 5 5 5"/>
-            </svg>
-          </button>
-        )}
-      </div>
 
-      {/* Expand button — rendered below traffic zone when collapsed so traffic lights don't block it */}
+      {/* Expand button — only visible when collapsed, lives below the traffic-light zone */}
       {collapsed && (
         <button
           className={s.expandBtn}
-          onClick={() => setCollapsed(false)}
+          onClick={() => dispatch({ type: 'SET_TOGGLE', key: 'sidebarCollapsed', value: false })}
           title="Expand sidebar"
         >
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">

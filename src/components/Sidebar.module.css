@@ -11,83 +11,13 @@
   min-width: 44px;
 }
 
-/* ── Wordmark zone — exact same height as the titlebar ── */
-.traffic {
-  height: 38px; min-height: 38px; flex-shrink: 0;
-  -webkit-app-region: drag;
-  display: flex; align-items: center; justify-content: flex-start;
-  /* 76px clears the three macOS traffic-light circles + their margins */
-  padding: 0 12px 0 80px;
-  border-bottom: 1px solid var(--bd1);
-  /* Optically match the macOS title bar's own background */
-  background: var(--bg1);
-}
-
-.wordmark {
-  display: flex; align-items: center; gap: 8px;
-  -webkit-app-region: no-drag;
-  user-select: none;
-  /* Push the wordmark down by 1px to optically align with
-     the traffic-light circles which have a slight top bias */
-  margin-top: 3.5px;
-}
-
-.wordmarkMatrix {
-  font-size: 12.5px;
-  font-weight: 700;
-  letter-spacing: -.35px;
-  color: var(--tx1);
-  line-height: 1;
-}
-
-.proBadge {
-  display: inline-flex;
-  align-items: center;
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: .9px;
-  color: var(--ac2);
-  border: 1px solid rgba(99,102,241,.35);
-  border-radius: 4px;
-  padding: 2.5px 5px;
-  line-height: 1;
-  background: linear-gradient(
-    135deg,
-    rgba(99,102,241,.2) 0%,
-    rgba(168,85,247,.2) 100%
-  );
-  /* Vertical alignment relative to the text */
-  position: relative;
-  top: -0.5px;
-}
-
-/* ── Collapse button ── */
-.collapseBtn {
-  margin-left: auto;
-  width: 22px; height: 22px;
-  display: flex; align-items: center; justify-content: center;
-  background: none; border: none; border-radius: 5px;
-  color: var(--tx3); cursor: pointer;
-  -webkit-app-region: no-drag;
-  transition: background var(--ease), color var(--ease);
-  flex-shrink: 0;
-}
-.collapseBtn:hover { background: var(--bg4); color: var(--tx1); }
-
-/* When collapsed, reset the 80px traffic-light padding — sidebar is only 44px wide */
-.sidebarCollapsed .traffic {
-  padding: 0;
-  justify-content: center;
-}
-
-/* Expand button shown below traffic zone when collapsed */
+/* ── Expand button (collapsed state only) ─────────────────────────────────── */
 .expandBtn {
   width: 100%;
   height: 36px;
   display: flex; align-items: center; justify-content: center;
   background: none; border: none; border-bottom: 1px solid var(--bd1);
   color: var(--tx3); cursor: pointer;
-  -webkit-app-region: no-drag;
   transition: background var(--ease), color var(--ease);
   flex-shrink: 0;
 }
@@ -139,7 +69,6 @@
 }
 .item:hover { background: var(--bg4); color: var(--tx1); }
 
-/* Active — applied as an additional class */
 .active { background: var(--ac-lo) !important; color: var(--ac2) !important; }
 
 .dot  { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
@@ -154,7 +83,7 @@
 .item:hover .rm { opacity: 1; }
 .rm:hover { background: var(--bg5); color: var(--tx1); }
 
-/* Closed dataset — still visible but dimmed, clickable to reopen */
+/* Closed dataset */
 .closed { opacity: 0.45; }
 .closed:hover { opacity: 0.8; }
 

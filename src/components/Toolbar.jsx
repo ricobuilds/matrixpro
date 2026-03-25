@@ -1,11 +1,72 @@
-import React from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useApp } from '../store/AppContext'
 import s from './Toolbar.module.css'
 
-export default function Toolbar({ ds, onRename, onDelete, onSaveGraph, onExportCSV, onGroup }) {
+// ─── Column visibility dropdown ───────────────────────────────────────────────
+function ColMenu ({ ds, onClose }) {
+  const { dispatch } = useApp()
+  const hidden = new Set(ds.hiddenCols || [])
+
+  const toggle = col => {
+    const next = hidden.has(col)
+      ? [...hidden].filter(c => c !== col)
+      : [...hidden, col]
+    dispatch({ type: 'UPDATE_DS', id: ds.id, patch: { hiddenCols: next } })
+  }
+
+  const showAll = () =>
+    dispatch({ type: 'UPDATE_DS', id: ds.id, patch: { hiddenCols: [] } })
+
+  return (
+    <div className={s.colMenu}>
+      <div className={s.colMenuHd}>
+        <span className={s.colMenuTitle}>Columns</span>
+        {hidden.size > 0 && (
+          <button className={s.colMenuReset} onClick={showAll}>Show all</button>
+        )}
+      </div>
+      <div className={s.colMenuList}>
+        {ds.cols.map(col => {
+          const visible = !hidden.has(col)
+          return (
+            <label key={col} className={s.colRow}>
+              <span className={s.colCheck + (visible ? ' ' + s.colCheckOn : '')} onClick={() => toggle(col)}>
+                {visible && (
+                  <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M2 6l3 3 5-5"/>
+                  </svg>
+                )}
+              </span>
+              <span className={s.colName + (!visible ? ' ' + s.colNameHidden : '')}>{col}</span>
+            </label>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ─── Main toolbar ─────────────────────────────────────────────────────────────
+export default function Toolbar ({ ds, onRename, onDelete, onSaveGraph, onExportCSV, onGroup }) {
   const { state, dispatch } = useApp()
-  const isGraph = state.view === 'graph'
-  const isSql = state.view === 'sql'
+  const isGraph   = state.view === 'graph'
+  const isSql     = state.view === 'sql'
+  const isTable   = state.view === 'table'
+
+  const [colMenuOpen, setColMenuOpen] = useState(false)
+  const colBtnRef = useRef(null)
+
+  const hiddenCount = (ds.hiddenCols || []).length
+
+  // Close on outside click
+  useEffect(() => {
+    if (!colMenuOpen) return
+    const handler = e => {
+      if (colBtnRef.current && !colBtnRef.current.contains(e.target)) setColMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [colMenuOpen])
 
   return (
     <div className={s.bar}>
@@ -28,7 +89,7 @@ export default function Toolbar({ ds, onRename, onDelete, onSaveGraph, onExportC
 
       <div className={s.viewSw}>
         <button
-          className={[s.vbtn, state.view === 'table' && s.active].filter(Boolean).join(' ')}
+          className={[s.vbtn, isTable && s.active].filter(Boolean).join(' ')}
           onClick={() => dispatch({ type: 'SET_VIEW', view: 'table' })}
         >
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
@@ -89,6 +150,28 @@ export default function Toolbar({ ds, onRename, onDelete, onSaveGraph, onExportC
           </svg>
           Group
         </button>
+      )}
+
+      {/* Column visibility — table view only */}
+      {isTable && (
+        <div className={s.colWrap} ref={colBtnRef}>
+          <button
+            className={[s.btn, colMenuOpen && s.btnOn].filter(Boolean).join(' ')}
+            onClick={() => setColMenuOpen(v => !v)}
+          >
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M1 4h14M1 8h14M1 12h14" />
+              <rect x="4" y="2" width="3" height="4" rx="1" fill="currentColor" stroke="none" />
+              <rect x="10" y="6" width="3" height="4" rx="1" fill="currentColor" stroke="none" />
+              <rect x="6" y="10" width="3" height="4" rx="1" fill="currentColor" stroke="none" />
+            </svg>
+            Columns
+            {hiddenCount > 0 && (
+              <span className={s.badge}>{hiddenCount} hidden</span>
+            )}
+          </button>
+          {colMenuOpen && <ColMenu ds={ds} onClose={() => setColMenuOpen(false)} />}
+        </div>
       )}
 
       {!isSql && (

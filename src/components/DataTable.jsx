@@ -72,6 +72,12 @@ export default function DataTable ({ ds, compact = false }) {
     setScrollTop(0)
   }, [ds.id, ds.rows, ds.filters, state.sortCol, state.sortDir])
 
+  // Visible columns (respects hiddenCols set in Toolbar)
+  const visibleCols = useMemo(() => {
+    const hidden = new Set(ds.hiddenCols || [])
+    return ds.cols.filter(c => !hidden.has(c))
+  }, [ds.cols, ds.hiddenCols])
+
   // Column types — memoised so header meta & cell rendering stay stable
   const colTypes = useMemo(() => {
     const out = {}
@@ -114,7 +120,7 @@ export default function DataTable ({ ds, compact = false }) {
           {/* ── Column widths ── */}
           <colgroup>
             <col style={{ width: 48 }} />
-            {ds.cols.map(col => (
+            {visibleCols.map(col => (
               <col key={col} style={{
                 width: colTypes[col] === 'numeric' ? 120
                      : colTypes[col] === 'date'    ? 160
@@ -127,7 +133,7 @@ export default function DataTable ({ ds, compact = false }) {
           <thead>
             <tr>
               <th><div className={s.thi + ' ' + s.idx}>#</div></th>
-              {ds.cols.map(col => {
+              {visibleCols.map(col => {
                 const ct = colTypes[col]
                 const vals = ds.rows.map(r => r[col]).filter(v => v !== undefined && v !== '')
                 const isActive = state.sortCol === col
@@ -168,7 +174,7 @@ export default function DataTable ({ ds, compact = false }) {
           <tbody>
             {topPad > 0 && (
               <tr aria-hidden="true">
-                <td colSpan={ds.cols.length + 1} className={s.spacer} style={{ height: topPad }} />
+                <td colSpan={visibleCols.length + 1} className={s.spacer} style={{ height: topPad }} />
               </tr>
             )}
 
@@ -177,7 +183,7 @@ export default function DataTable ({ ds, compact = false }) {
               return (
                 <tr key={i} className={i % 2 === 1 ? s.alt : ''}>
                   <td className={s.tdIdx}>{i + 1}</td>
-                  {ds.cols.map(col => {
+                  {visibleCols.map(col => {
                     const cell = fmtCell(row[col], colTypes[col])
                     const nm   = numMax[col]
                     const pct  = nm ? Math.abs(parseNumeric(row[col]) || 0) / nm.max * 100 : 0
@@ -199,7 +205,7 @@ export default function DataTable ({ ds, compact = false }) {
 
             {bottomPad > 0 && (
               <tr aria-hidden="true">
-                <td colSpan={ds.cols.length + 1} className={s.spacer} style={{ height: bottomPad }} />
+                <td colSpan={visibleCols.length + 1} className={s.spacer} style={{ height: bottomPad }} />
               </tr>
             )}
           </tbody>

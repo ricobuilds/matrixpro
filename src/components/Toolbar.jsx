@@ -18,6 +18,12 @@ function ColMenu ({ ds }) {
   const [search, setSearch] = useState('')
   const searchRef = useRef(null)
 
+  // Compute type badges once when the menu mounts — detectColType samples rows
+  const colTypes = useMemo(
+    () => Object.fromEntries(ds.cols.map(c => [c, detectColType(ds, c)])),
+    [ds.id, ds.cols] // eslint-disable-line react-hooks/exhaustive-deps
+  )
+
   useEffect(() => { if (ds.cols.length > 8) searchRef.current?.focus() }, [])
 
   const toggle = col => {
@@ -61,8 +67,7 @@ function ColMenu ({ ds }) {
       <div className={s.colMenuList}>
         {filtered.map(col => {
           const visible = !hidden.has(col)
-          const ct = detectColType(ds, col)
-          const tb = TB[ct]
+          const tb = TB[colTypes[col]] || TB.text
           return (
             <div key={col} className={s.colRow} onClick={() => toggle(col)}>
               <span className={`${s.colCheck} ${visible ? s.colCheckOn : ''}`}>

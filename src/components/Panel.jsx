@@ -635,10 +635,10 @@ function DateStats ({ vals }) {
           <div className={s.stLbl}>Latest</div>
           <div className={s.stVal}>{fmt(maxD)}</div>
         </div>
-        <div className={s.stCellFull}>
-          <div className={s.stLbl}>Span</div>
-          <div className={s.stVal}>{spanDays.toLocaleString()} days</div>
-        </div>
+      </div>
+      <div className={s.stSpan}>
+        <span className={s.stSpanLbl}>Span</span>
+        <span className={s.stSpanVal}>{spanDays.toLocaleString()} days</span>
       </div>
       {years.length > 1 && (
         <div className={s.dateYearDist}>
@@ -668,12 +668,14 @@ function StatCard ({ col, ds }) {
         <span className={s.statMeta}>{nonNull.length.toLocaleString()}</span>
         {missingCnt > 0 && <span className={s.statMissing}>{missingCnt} missing</span>}
       </div>
-      <div className={s.statBody}>
-        {colType === 'numeric' && <NumericStats vals={nonNull} />}
-        {colType === 'boolean' && <BoolStats vals={nonNull} total={nonNull.length} />}
-        {colType === 'date'    && <DateStats vals={nonNull} />}
-        {colType === 'text'    && <CatStats vals={nonNull} total={allVals.length} />}
-      </div>
+      {nonNull.length > 0 && (
+        <div className={s.statBody}>
+          {colType === 'numeric' && <NumericStats vals={nonNull} />}
+          {colType === 'boolean' && <BoolStats vals={nonNull} total={nonNull.length} />}
+          {colType === 'date'    && <DateStats vals={nonNull} />}
+          {colType === 'text'    && <CatStats vals={nonNull} total={allVals.length} />}
+        </div>
+      )}
     </div>
   )
 }

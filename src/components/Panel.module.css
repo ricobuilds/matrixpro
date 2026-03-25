@@ -175,11 +175,13 @@
 .textClear:hover { background: var(--bg5); color: var(--tx1); }
 
 /* Stats grid */
-.stGrid     { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 6px; }
-.stCell     { background: var(--bg4); border-radius: 6px; padding: 7px 8px; }
-.stCellFull { background: var(--bg4); border-radius: 6px; padding: 7px 8px; grid-column: span 2; }
-.stLbl  { font-size: 9px; color: var(--tx3); margin-bottom: 2px; text-transform: uppercase; letter-spacing: .4px; }
-.stVal  { font-size: 12px; color: var(--ac2); font-family: var(--m); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stGrid    { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 6px; }
+.stCell    { background: var(--bg4); border-radius: 6px; padding: 7px 8px; }
+.stLbl     { font-size: 9px; color: var(--tx3); margin-bottom: 2px; text-transform: uppercase; letter-spacing: .4px; }
+.stVal     { font-size: 12px; color: var(--ac2); font-family: var(--m); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stSpan    { display: flex; align-items: center; justify-content: space-between; margin-top: 5px; padding: 5px 8px; background: var(--bg4); border-radius: 6px; }
+.stSpanLbl { font-size: 9px; color: var(--tx3); text-transform: uppercase; letter-spacing: .4px; }
+.stSpanVal { font-size: 12px; color: var(--ac2); font-family: var(--m); font-weight: 500; }
 
 /* ── Stats tab ───────────────────────────────────────────────────────────── */
 .statWrap { display: flex; flex-direction: column; }

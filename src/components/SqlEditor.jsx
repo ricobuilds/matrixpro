@@ -115,14 +115,16 @@ function SchemaPane ({ tabs, tableMap, onInsert }) {
             </div>
 
             {open && ds.cols.map(col => {
-              const sample = ds.rows.slice(0, 10).filter(r => r[col] !== '' && r[col] != null)
-              const isNum  = sample.length > 0 && sample.every(r => !isNaN(Number(String(r[col]).trim())))
-              const isDate = !isNum && sample.length >= 2 && sample.every(r => {
+              const sample  = ds.rows.slice(0, 10).filter(r => r[col] !== '' && r[col] != null)
+              const BOOL_VALS = new Set(['true','false','yes','no','TRUE','FALSE','YES','NO','True','False','Yes','No'])
+              const isNum   = sample.length > 0 && sample.every(r => !isNaN(Number(String(r[col]).trim().replace(/^[$€£¥₹]/,'').replace(/,/g,'').replace(/%$/,''))))
+              const isDate  = !isNum && sample.length >= 2 && sample.every(r => {
                 const DATE_RE = [/^\d{4}-\d{2}-\d{2}/,/^\d{1,2}\/\d{1,2}\/\d{2,4}$/,/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s/i]
                 return DATE_RE.some(re => re.test(String(r[col]).trim()))
               })
-              const badge = isNum ? '#' : isDate ? 'D' : 'A'
-              const cls   = isNum ? s.schemaTypeNum : isDate ? s.schemaTypeDate : s.schemaTypeCat
+              const isBool  = !isNum && !isDate && sample.length >= 1 && sample.every(r => BOOL_VALS.has(String(r[col]).trim()))
+              const badge = isNum ? '#' : isDate ? 'D' : isBool ? 'B' : 'T'
+              const cls   = isNum ? s.schemaTypeNum : isDate ? s.schemaTypeDate : isBool ? s.schemaTypeBool : s.schemaTypeCat
               return (
                 <div
                   key={col}

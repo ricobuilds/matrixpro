@@ -74,6 +74,12 @@
 }
 .collapseBtn:hover { background: var(--bg4); color: var(--tx1); }
 
+/* When collapsed, reset the 80px traffic-light padding — sidebar is only 44px wide */
+.sidebarCollapsed .traffic {
+  padding: 0;
+  justify-content: center;
+}
+
 /* Expand button shown below traffic zone when collapsed */
 .expandBtn {
   width: 100%;

@@ -1,4 +1,4 @@
-import { TAB_COLORS, PILL_STYLES } from './constants'
+import { TAB_COLORS, PILL_STYLES, CATEGORY_PALETTE } from './constants'
 
 // ─── uid ─────────────────────────────────────────────────────────────────────
 export function uid () {
@@ -13,8 +13,22 @@ export function fmtN (n) {
   return Number.isInteger(n) ? n.toLocaleString() : parseFloat(n).toFixed(2)
 }
 
+// Deterministic color for any category value — no hardcoding needed
+function hashStr (s) {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
+  return Math.abs(h)
+}
+export function getCategoryStyle (value) {
+  return CATEGORY_PALETTE[hashStr(String(value)) % CATEGORY_PALETTE.length]
+}
+
 export function fmtCell (v, colType) {
   if (v === undefined || v === null || v === '') return '—'
+  if (colType === 'category') {
+    const { bg, color } = getCategoryStyle(String(v))
+    return { type: 'pill', bg, color, label: String(v) }
+  }
   const pill = PILL_STYLES[String(v)]
   if (pill) return { type: 'pill', bg: pill[0], color: pill[1], label: String(v) }
   if (colType === 'date') return { type: 'date', label: fmtDate(v) }
@@ -60,12 +74,21 @@ export function isDateCol (ds, col) {
   return sample.length >= 2 && sample.every(v => DATE_RE.some(re => re.test(String(v).trim())))
 }
 
-// 'numeric' | 'date' | 'boolean' | 'text'
+// Low-cardinality text → category (auto-pill coloring)
+export function isCategoryCol (ds, col) {
+  const vals = ds.rows.slice(0, 100).map(r => r[col]).filter(v => v !== '' && v != null)
+  if (vals.length < 2) return false
+  const unique = new Set(vals)
+  return unique.size <= 15 && unique.size / vals.length <= 0.5
+}
+
+// 'numeric' | 'date' | 'boolean' | 'category' | 'text'
 export function detectColType (ds, col) {
   if (ds.pinnedTypes?.[col]) return ds.pinnedTypes[col]
-  if (isDateCol(ds, col))    return 'date'
-  if (isBooleanCol(ds, col)) return 'boolean'
-  if (isNumericCol(ds, col)) return 'numeric'
+  if (isDateCol(ds, col))     return 'date'
+  if (isBooleanCol(ds, col))  return 'boolean'
+  if (isNumericCol(ds, col))  return 'numeric'
+  if (isCategoryCol(ds, col)) return 'category'
   return 'text'
 }
 

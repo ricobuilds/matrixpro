@@ -49,27 +49,41 @@ function CellValue ({ cell }) {
 }
 
 // ─── Inline cell editor ───────────────────────────────────────────────────────
-function CellEditor ({ initialValue, onCommit, onCancel, onNavigate }) {
-  const [v, setV]     = useState(String(initialValue ?? ''))
-  const vRef          = useRef(v)
-  vRef.current        = v
-  const handled       = useRef(false)
-  const inputRef      = useRef(null)
+function CellEditor ({ initialValue, colType, onCommit, onCancel, onNavigate }) {
+  const [v, setV]       = useState(String(initialValue ?? ''))
+  const [invalid, setInvalid] = useState(false)
+  const vRef            = useRef(v)
+  vRef.current          = v
+  const handled         = useRef(false)
+  const inputRef        = useRef(null)
 
   useEffect(() => { inputRef.current?.focus(); inputRef.current?.select() }, [])
+
+  const validate = val => {
+    if (colType === 'numeric' && val.trim() !== '' && isNaN(parseNumeric(val))) {
+      setInvalid(true)
+      setTimeout(() => setInvalid(false), 400)
+      return false
+    }
+    return true
+  }
 
   return (
     <input
       ref={inputRef}
-      className={s.cellEdit}
+      className={[s.cellEdit, invalid ? s.cellEditInvalid : ''].filter(Boolean).join(' ')}
       value={v}
       onChange={e => setV(e.target.value)}
       onKeyDown={e => {
-        if (e.key === 'Enter')  { e.preventDefault(); handled.current = true; onNavigate('down',  vRef.current) }
-        if (e.key === 'Tab')    { e.preventDefault(); handled.current = true; onNavigate(e.shiftKey ? 'left' : 'right', vRef.current) }
+        if (e.key === 'Enter')  { e.preventDefault(); if (validate(vRef.current)) { handled.current = true; onNavigate('down',  vRef.current) } }
+        if (e.key === 'Tab')    { e.preventDefault(); if (validate(vRef.current)) { handled.current = true; onNavigate(e.shiftKey ? 'left' : 'right', vRef.current) } }
         if (e.key === 'Escape') { e.preventDefault(); handled.current = true; onCancel() }
       }}
-      onBlur={() => { if (!handled.current) onCommit(vRef.current) }}
+      onBlur={() => {
+        if (handled.current) return
+        if (validate(vRef.current)) { onCommit(vRef.current) }
+        else { setTimeout(() => inputRef.current?.focus(), 0) }
+      }}
       onClick={e => e.stopPropagation()}
     />
   )
@@ -419,6 +433,7 @@ export default function DataTable ({ ds, compact = false }) {
                         {isEditCell ? (
                           <CellEditor
                             initialValue={row[col]}
+                            colType={colTypes[col]}
                             onCommit={v => { commitEdit(dsRowIdx, col, v); setEditingCell(null) }}
                             onCancel={() => setEditingCell(null)}
                             onNavigate={(dir, v) => navigate(dir, dsRowIdx, col, v)}

@@ -117,6 +117,17 @@
   font: 12px/1 var(--f); color: var(--tx1);
   z-index: 3;
 }
+.cellEditInvalid {
+  outline: 2px solid #f43f5e !important;
+  outline-offset: -1px;
+  animation: shake .35s ease;
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-5px); }
+  50%       { transform: translateX(5px); }
+  80%       { transform: translateX(-3px); }
+}
 
 /* ── Row index cell: row num ↔ delete button ────────────────────────────── */
 .tdIdxCell { position: relative !important; overflow: visible; }

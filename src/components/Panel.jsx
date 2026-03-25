@@ -666,7 +666,7 @@ function StatCard ({ col, ds }) {
           {colType === 'numeric' && <NumericStats vals={nonNull} />}
           {colType === 'boolean' && <BoolStats vals={nonNull} total={nonNull.length} />}
           {colType === 'date'    && <DateStats vals={nonNull} />}
-          {colType === 'text'    && <CatStats vals={nonNull} total={allVals.length} />}
+          {(colType === 'text' || colType === 'category') && <CatStats vals={nonNull} total={allVals.length} />}
         </div>
       )}
     </div>

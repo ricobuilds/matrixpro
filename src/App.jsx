@@ -349,12 +349,12 @@ function Inner () {
   }, [ds, groupBy, groupFn, state.tabs.length, addTab, toast])
 
   // ── Filter helpers ──────────────────────────────────────────────────────────
-  const addFilter = useCallback((col, val) => {
+  const addFilter = useCallback((col, filterFn, label) => {
     if (!ds) return
-    const newFilters = { ...ds.filters, [col]: r => String(r[col]) === String(val) }
-    const newLabels  = { ...(ds.filterLabels || {}), [col]: `= ${val}` }
+    const newFilters = { ...ds.filters, [col]: filterFn }
+    const newLabels  = { ...(ds.filterLabels || {}), [col]: label }
     updateDS(ds.id, { filters: newFilters, filterLabels: newLabels })
-    toast(`Filter: ${col} = ${val}`, '⚡')
+    toast(`Filter: ${col} ${label}`, '⚡')
   }, [ds, updateDS, toast])
 
   const removeFilter = useCallback((col) => {

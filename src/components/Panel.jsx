@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react'
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useApp } from '../store/AppContext'
 import { PALETTES, CHART_TYPES } from '../lib/constants'
-import { isNumericCol, fmtN } from '../lib/data'
+import { isNumericCol, detectColType, fmtN, parseNumeric } from '../lib/data'
 import s from './Panel.module.css'
 
 // ─── AI Suggestions ──────────────────────────────────────────────────────────
@@ -138,14 +138,221 @@ Format: [{"title":"...","desc":"...","chart":"bar","x":"ColName","y":"ColName","
   )
 }
 
+// ─── Numeric range filter ─────────────────────────────────────────────────────
+function NumericFilter ({ col, ds, pal, onFilterAdd, onFilterRemove }) {
+  const vals = useMemo(() =>
+    ds.rows.map(r => r[col]).filter(v => v !== '' && v != null).map(parseNumeric).filter(n => !isNaN(n)),
+    [ds.rows, col]
+  )
+  const mn = Math.min(...vals), mx = Math.max(...vals)
+
+  const [lo, setLo] = useState('')
+  const [hi, setHi] = useState('')
+
+  const apply = () => {
+    const loN = lo !== '' ? parseNumeric(lo) : null
+    const hiN = hi !== '' ? parseNumeric(hi) : null
+    if (loN === null && hiN === null) { onFilterRemove(col); return }
+    const parts = []
+    if (loN !== null) parts.push(`≥ ${fmtN(loN)}`)
+    if (hiN !== null) parts.push(`≤ ${fmtN(hiN)}`)
+    onFilterAdd(col,
+      r => { const n = parseNumeric(r[col]); return !isNaN(n) && (loN === null || n >= loN) && (hiN === null || n <= hiN) },
+      parts.join(', ')
+    )
+  }
+
+  const clear = () => { setLo(''); setHi(''); onFilterRemove(col) }
+
+  // Mini histogram
+  const B = 16, bw = (mx - mn) / B || 1
+  const cnts = Array(B).fill(0)
+  vals.forEach(v => { const i = Math.min(Math.floor((v - mn) / bw), B - 1); cnts[i]++ })
+  const mc = Math.max(...cnts) || 1
+
+  return (
+    <div className={s.fWidget}>
+      <div className={s.miniHist}>
+        {cnts.map((c, i) => (
+          <div key={i} className={s.miniBar}
+            style={{ height: Math.max(2, c / mc * 28), background: pal[i % pal.length] }}
+            title={`${fmtN(mn + i * bw)}–${fmtN(mn + (i+1) * bw)}: ${c}`}
+          />
+        ))}
+      </div>
+      <div className={s.rangeRow}>
+        <input
+          className={s.rangeIn} value={lo}
+          onChange={e => setLo(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && apply()}
+          placeholder={`Min`}
+        />
+        <span className={s.rangeDash}>–</span>
+        <input
+          className={s.rangeIn} value={hi}
+          onChange={e => setHi(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && apply()}
+          placeholder={`Max`}
+        />
+      </div>
+      <div className={s.fActions}>
+        <button className={s.applyBtn} onClick={apply}>Apply</button>
+        {(lo || hi) && <button className={s.clearFBtn} onClick={clear}>Clear</button>}
+        <span className={s.fHint}>{fmtN(mn)} – {fmtN(mx)}</span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Categorical multi-select filter ─────────────────────────────────────────
+function CatFilter ({ col, ds, pal, onFilterAdd, onFilterRemove }) {
+  const [search, setSearch]     = useState('')
+  const [selected, setSelected] = useState(new Set())
+
+  const entries = useMemo(() => {
+    const cnt = {}
+    ds.rows.forEach(r => {
+      const v = r[col]
+      if (v !== '' && v != null) cnt[v] = (cnt[v] || 0) + 1
+    })
+    return Object.entries(cnt).sort((a, b) => b[1] - a[1])
+  }, [ds.rows, col])
+
+  const visible = search
+    ? entries.filter(([v]) => String(v).toLowerCase().includes(search.toLowerCase()))
+    : entries
+
+  const toggle = val => {
+    const next = new Set(selected)
+    next.has(val) ? next.delete(val) : next.add(val)
+    setSelected(next)
+    if (next.size === 0) {
+      onFilterRemove(col)
+    } else {
+      const preview = [...next].slice(0, 3).join(', ') + (next.size > 3 ? ` +${next.size - 3}` : '')
+      onFilterAdd(col, r => next.has(r[col]), `= ${preview}`)
+    }
+  }
+
+  const clear = () => { setSelected(new Set()); onFilterRemove(col) }
+
+  return (
+    <div className={s.fWidget}>
+      {entries.length > 7 && (
+        <input
+          className={s.catSearch}
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search values…"
+        />
+      )}
+      <div className={s.catList}>
+        {visible.slice(0, 60).map(([v, cnt], i) => {
+          const on = selected.has(v)
+          return (
+            <div key={v} className={s.catRow + (on ? ' ' + s.catRowOn : '')} onClick={() => toggle(v)}>
+              <span className={s.catCheck + (on ? ' ' + s.catCheckOn : '')}>
+                {on && (
+                  <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M2 6l3 3 5-5"/>
+                  </svg>
+                )}
+              </span>
+              <span className={s.catVal}>{String(v)}</span>
+              <span className={s.catCnt}>{cnt}</span>
+            </div>
+          )
+        })}
+        {visible.length === 0 && <div className={s.empty}>No matches</div>}
+      </div>
+      {selected.size > 0 && (
+        <button className={s.clearFBtn} style={{ marginTop: 6 }} onClick={clear}>
+          Clear {selected.size} selected
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ─── Text contains filter ──────────────────────────────────────────────────────
+function TextFilter ({ col, ds, onFilterAdd, onFilterRemove }) {
+  const [q, setQ] = useState('')
+
+  const apply = () => {
+    if (!q.trim()) { onFilterRemove(col); return }
+    onFilterAdd(col,
+      r => String(r[col] ?? '').toLowerCase().includes(q.toLowerCase()),
+      `contains "${q}"`
+    )
+  }
+
+  const clear = () => { setQ(''); onFilterRemove(col) }
+
+  return (
+    <div className={s.fWidget}>
+      <div className={s.textRow}>
+        <input
+          className={s.textIn}
+          value={q}
+          onChange={e => setQ(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && apply()}
+          placeholder="Contains…"
+        />
+        {q && <button className={s.textClear} onClick={clear}>✕</button>}
+      </div>
+      <div className={s.fActions}>
+        <button className={s.applyBtn} onClick={apply}>Apply</button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Single column filter card ────────────────────────────────────────────────
+function ColFilterCard ({ col, ds, pal, onFilterAdd, onFilterRemove }) {
+  const [open, setOpen] = useState(false)
+  const colType  = useMemo(() => detectColType(ds, col), [ds, col])
+  const isActive = col in (ds.filters || {})
+  const vals     = ds.rows.map(r => r[col]).filter(v => v !== '' && v != null)
+  const uniqCount = new Set(vals).size
+
+  const typeLabel = colType === 'numeric' ? '#' : colType === 'date' ? 'D' : 'T'
+  const typeClass = colType === 'numeric' ? s.typeBadgeNum : colType === 'date' ? s.typeBadgeDate : s.typeBadgeCat
+
+  return (
+    <div className={s.fcCard + (isActive ? ' ' + s.fcCardActive : '')}>
+      <div className={s.fcHd} onClick={() => setOpen(v => !v)}>
+        <span className={s.typeBadge + ' ' + typeClass}>{typeLabel}</span>
+        <span className={s.fcName}>{col}</span>
+        <span className={s.fcMeta}>{uniqCount.toLocaleString()} unique</span>
+        {isActive && <span className={s.fcDot} />}
+        <svg
+          className={s.fcChev + (open ? ' ' + s.fcChevOpen : '')}
+          width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5"
+        >
+          <path d="M4 6l4 4 4-4"/>
+        </svg>
+      </div>
+
+      {open && (
+        colType === 'numeric'
+          ? <NumericFilter col={col} ds={ds} pal={pal} onFilterAdd={onFilterAdd} onFilterRemove={onFilterRemove} />
+          : uniqCount <= 50
+            ? <CatFilter    col={col} ds={ds} pal={pal} onFilterAdd={onFilterAdd} onFilterRemove={onFilterRemove} />
+            : <TextFilter   col={col} ds={ds}            onFilterAdd={onFilterAdd} onFilterRemove={onFilterRemove} />
+      )}
+    </div>
+  )
+}
+
 // ─── Filters tab ─────────────────────────────────────────────────────────────
 function FiltersTab ({ ds, onFilterAdd, onFilterRemove, onFilterClear }) {
   const { state } = useApp()
   const pal = PALETTES[state.palette]
-  const activeKeys = Object.keys(ds.filters)
+  const activeKeys = Object.keys(ds.filters || {})
 
   return (
     <>
+      {/* Active chips */}
       <div className={s.sec}>
         <div className={s.lbl}>
           Active
@@ -170,54 +377,19 @@ function FiltersTab ({ ds, onFilterAdd, onFilterRemove, onFilterClear }) {
 
       <div className={s.sep} />
 
-      <div className={s.sec} style={{ paddingBottom: 12 }}>
-        <div className={s.lbl}>Column overview</div>
-        {ds.cols.map(col => {
-          const vals = ds.rows.map(r => r[col]).filter(v => v !== undefined && v !== '')
-          const iN   = isNumericCol(ds, col)
-          const nums = iN ? vals.map(Number) : []
-          const mn   = iN ? Math.min(...nums) : 0
-          const mx   = iN ? Math.max(...nums) : 0
-
-          let bars = []
-          if (iN && nums.length) {
-            const B = 14, bw = (mx - mn) / B || 1
-            const cnts = Array(B).fill(0)
-            nums.forEach(v => { const i = Math.min(Math.floor((v - mn) / bw), B - 1); cnts[i]++ })
-            const mc = Math.max(...cnts) || 1
-            bars = cnts.map((c, i) => ({ h: Math.max(2, c / mc * 28), color: pal[i % pal.length], title: `${fmtN(mn + i * bw)}–${fmtN(mn + (i+1) * bw)}: ${c}`, val: null }))
-          } else {
-            const uniq = [...new Set(vals)], cnt = {}
-            vals.forEach(v => { cnt[v] = (cnt[v] || 0) + 1 })
-            const mc = Math.max(...Object.values(cnt)) || 1
-            bars = [...uniq].slice(0, 14).map((u, i) => ({ h: Math.max(2, cnt[u] / mc * 28), color: pal[i % pal.length], title: `${u}: ${cnt[u]}`, val: u }))
-          }
-
-          return (
-            <div key={col} className={s.cst}>
-              <div className={s.cstTop}>
-                <span className={s.cstName}>{col}</span>
-                <span className={s.cstCnt}>{vals.length.toLocaleString()}</span>
-              </div>
-              <div className={s.cstH}>
-                {bars.map((b, i) => (
-                  <div
-                    key={i}
-                    className={s.cstB}
-                    style={{ height: b.h, background: b.color, opacity: .72 }}
-                    title={b.title}
-                    onClick={() => b.val !== null && onFilterAdd(col, b.val)}
-                  />
-                ))}
-              </div>
-              <div className={s.cstR}>
-                {iN
-                  ? `${fmtN(mn)} — ${fmtN(mx)}`
-                  : [...new Set(vals)].slice(0, 4).join(' · ') + (new Set(vals).size > 4 ? '…' : '')}
-              </div>
-            </div>
-          )
-        })}
+      {/* Per-column filter cards */}
+      <div className={s.sec} style={{ paddingBottom: 14 }}>
+        <div className={s.lbl}>Columns</div>
+        {ds.cols.map(col => (
+          <ColFilterCard
+            key={col}
+            col={col}
+            ds={ds}
+            pal={pal}
+            onFilterAdd={onFilterAdd}
+            onFilterRemove={onFilterRemove}
+          />
+        ))}
       </div>
     </>
   )

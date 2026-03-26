@@ -39,7 +39,9 @@ npm run build:linux   # → release/Matrix Pro-2.0.0.AppImage
 - **Create blank datasets from scratch** — define column names and types upfront via the **+** button
 - 5 column types: **Text · Number · Date · Boolean · Category** — auto-detected on import, overridable per column
 - Closing a dataset hides it — it stays in the sidebar and can be reopened
-- Permanent deletion via the toolbar trash icon
+- **Duplicate** any dataset via the ⋯ menu in the toolbar — creates a full copy as a new tab
+- **Change dataset colour** — click the colour dot in the toolbar to pick from 10 palette swatches; persists to SQLite
+- Rename and delete via the ⋯ menu in the toolbar
 - Datasets, saved graphs, and workspace assignments are persisted to SQLite on Electron
 
 ### Workspaces
@@ -52,6 +54,7 @@ npm run build:linux   # → release/Matrix Pro-2.0.0.AppImage
 
 ### Table view
 - Sortable columns, formatted numbers, date parsing, and categorical value pills
+- Row and column count always visible in the toolbar stat pill; hidden columns shown as `N / total cols`
 - **Inline cell editing** — double-click any cell to edit; Tab / Enter to move to the next cell, Esc to cancel
 - **Column rename** — double-click any column header label to rename it inline; all rows, types, and widths update automatically
 - **Column type override** — click the type badge (T / # / D / B / C) in any column header to cycle through types

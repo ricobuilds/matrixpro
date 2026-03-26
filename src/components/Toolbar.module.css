@@ -7,13 +7,46 @@
   position: relative; z-index: 10;
 }
 
-/* ── Dataset identity ──────────────────────────────────────────────────────── */
+/* ── Zone 1: Dataset identity ──────────────────────────────────────────────── */
 .meta  { display: flex; align-items: center; gap: 7px; flex-shrink: 0; min-width: 0; }
-.colorDot {
-  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-  box-shadow: 0 0 0 2px rgba(255,255,255,.08);
-}
 .name  { font-size: 14px; font-weight: 600; letter-spacing: -.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+
+/* Color dot — clickable */
+.colorDotWrap { position: relative; flex-shrink: 0; }
+.colorDotBtn {
+  width: 10px; height: 10px; border-radius: 50%;
+  border: none; cursor: pointer; flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255,255,255,.1);
+  transition: box-shadow .15s, transform .15s;
+  padding: 0;
+}
+.colorDotBtn:hover { box-shadow: 0 0 0 3px rgba(255,255,255,.22); transform: scale(1.2); }
+
+/* Color picker popover */
+.colorPicker {
+  position: absolute; top: calc(100% + 8px); left: 50%;
+  transform: translateX(-50%);
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;
+  padding: 10px; background: var(--bg3);
+  border: 1px solid var(--bd2); border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.5);
+  z-index: 200;
+  animation: popIn .12s ease;
+}
+@keyframes popIn {
+  from { opacity: 0; transform: translateX(-50%) scale(.93); }
+  to   { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+.colorSwatch {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid transparent; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .1s, border-color .1s;
+}
+.colorSwatch:hover { transform: scale(1.2); }
+.colorSwatchActive { border-color: rgba(255,255,255,.7) !important; }
+
+/* Stat pill */
 .pill  {
   user-select: none; background: var(--bg5); border: 1px solid var(--bd2);
   border-radius: 5px; padding: 2px 7px; font-size: 11px; color: var(--tx2);
@@ -23,6 +56,7 @@
 .pillFiltered { color: var(--ac2); font-weight: 600; }
 .pillSep      { color: var(--tx3); }
 .pillTotal    { color: var(--tx3); }
+.pillDot      { color: var(--tx3); margin: 0 1px; }
 
 .clearFiltersBtn {
   display: flex; align-items: center; gap: 5px;
@@ -35,21 +69,47 @@
   background: rgba(244,63,94,.15); border-color: rgba(244,63,94,.45); color: #fecdd3;
 }
 
-/* ── View switcher ─────────────────────────────────────────────────────────── */
+/* ⋯ dataset menu */
+.dsMenuWrap { position: relative; flex-shrink: 0; }
+.moreBtn {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: var(--r);
+  background: none; border: 1px solid transparent;
+  color: var(--tx3); cursor: pointer;
+  transition: all var(--ease);
+}
+.moreBtn:hover  { background: var(--bg4); border-color: var(--bd2); color: var(--tx1); }
+.moreBtnOn      { background: var(--bg4) !important; border-color: var(--bd2) !important; color: var(--tx1) !important; }
+
+.dsMenu {
+  position: absolute; top: calc(100% + 6px); left: 0;
+  min-width: 150px; background: var(--bg3);
+  border: 1px solid var(--bd2); border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.45);
+  z-index: 100; overflow: hidden;
+  animation: popIn .12s ease;
+}
+.dsMenuItem {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; width: 100%;
+  background: none; border: none; cursor: pointer;
+  font: 500 12px/1 var(--f); color: var(--tx2);
+  transition: background var(--ease);
+}
+.dsMenuItem:hover { background: var(--bg4); color: var(--tx1); }
+.dsMenuDivider { height: 1px; background: var(--bd1); margin: 3px 0; }
+.dsMenuDanger { color: #fda4af !important; }
+.dsMenuDanger:hover { background: rgba(244,63,94,.08) !important; color: #fecdd3 !important; }
+
+/* ── Zone 2: View switcher ─────────────────────────────────────────────────── */
 .viewSw { display: flex; background: var(--bg4); border: 1px solid var(--bd2); border-radius: 9px; padding: 3px; gap: 2px; flex-shrink: 0; }
 .vbtn   { display: flex; align-items: center; gap: 5px; padding: 4px 11px; border-radius: 6px; font: 500 12px/1 var(--f); color: var(--tx2); background: none; border: none; cursor: pointer; transition: all var(--ease); white-space: nowrap; }
 .vbtn:hover { color: var(--tx1); }
 .active { background: var(--bd3) !important; color: var(--tx1) !important; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
 
-/* ── Axis bar ──────────────────────────────────────────────────────────────── */
-.axBar { display: flex; align-items: center; gap: 5px; background: var(--bg3); border: 1px solid var(--bd2); border-radius: 7px; padding: 3px 8px; flex: 1; min-width: 0; max-width: 360px; overflow: hidden; }
-.axLbl { font-size: 11px; color: var(--tx3); flex-shrink: 0; }
-.axSel { flex: 1; min-width: 0; background: transparent; border: none; color: var(--tx1); font: 12px/1 var(--f); cursor: pointer; outline: none; }
-.axDiv { width: 1px; height: 14px; background: var(--bd2); flex-shrink: 0; }
-
 .sp { flex: 1; min-width: 0; }
 
-/* ── Buttons ───────────────────────────────────────────────────────────────── */
+/* ── Zone 3: Action buttons ────────────────────────────────────────────────── */
 .btn   { display: flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: var(--r); font: 500 12px/1 var(--f); color: var(--tx2); cursor: pointer; background: var(--bg4); border: 1px solid var(--bd2); white-space: nowrap; flex-shrink: 0; transition: all var(--ease); }
 .btn:hover { color: var(--tx1); border-color: var(--bd3); }
 .btnOn   { color: var(--ac2) !important; border-color: var(--ac) !important; background: var(--ac-lo) !important; }
@@ -58,11 +118,6 @@
 
 .badge { background: var(--ac); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 10px; }
 .div   { width: 1px; height: 18px; background: var(--bd2); flex-shrink: 0; }
-
-.iconBtn { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: var(--r); background: var(--bg4); border: 1px solid var(--bd2); color: var(--tx2); cursor: pointer; flex-shrink: 0; transition: all var(--ease); }
-.iconBtn:hover { color: var(--tx1); border-color: var(--bd3); }
-.danger { color: var(--tx3) !important; }
-.danger:hover { color: #fda4af !important; border-color: rgba(244,63,94,.4) !important; background: rgba(244,63,94,.08) !important; }
 
 /* ── Export dropdown ───────────────────────────────────────────────────────── */
 .exportWrap { position: relative; flex-shrink: 0; }
@@ -76,7 +131,6 @@
   box-shadow: 0 8px 32px rgba(0,0,0,.45); overflow: hidden; z-index: 100;
   min-width: 148px;
 }
-
 .exportItem {
   display: flex; align-items: center; gap: 8px;
   padding: 9px 12px; width: 100%;
@@ -96,7 +150,6 @@
   border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,.45);
   z-index: 100; overflow: hidden;
 }
-
 .colMenuHd {
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 12px 8px; border-bottom: 1px solid var(--bd1);
@@ -138,7 +191,6 @@
 }
 .colCheckOn { background: var(--ac); border-color: var(--ac); color: #fff; }
 
-/* Type badges inside col menu */
 .colTypeBadge {
   font-size: 9px; font-weight: 700; font-family: var(--m);
   width: 14px; min-width: 14px; text-align: center;

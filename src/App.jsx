@@ -389,6 +389,26 @@ function Inner () {
     toast('Graph deleted')
   }, [ds, updateDS, toast])
 
+  // ── Duplicate dataset ───────────────────────────────────────────────────────
+  const duplicateDataset = useCallback(() => {
+    if (!ds) return
+    const newDs = makeDS(`${ds.name} (copy)`, ds.rows, state.tabs.length)
+    newDs.cols        = [...ds.cols]
+    newDs.rows        = ds.rows.map(r => ({ ...r }))
+    newDs.pinnedTypes = ds.pinnedTypes ? { ...ds.pinnedTypes } : null
+    newDs.workspaceId = ds.workspaceId ?? null
+    addTab(newDs)
+    if (isElectron) window.MP.db.upsertDataset({ id: newDs.id, name: newDs.name, color: newDs.color, cols: newDs.cols, rows: newDs.rows, workspaceId: newDs.workspaceId, pinnedTypes: newDs.pinnedTypes ?? null }).catch(() => {})
+    toast(`Duplicated "${ds.name}"`, '⎘')
+  }, [ds, state.tabs.length, addTab, toast])
+
+  // ── Change dataset colour ───────────────────────────────────────────────────
+  const changeColor = useCallback((color) => {
+    if (!ds) return
+    updateDS(ds.id, { color })
+    if (isElectron) window.MP.db.upsertDataset({ id: ds.id, name: ds.name, color, cols: ds.cols, rows: ds.rows, workspaceId: ds.workspaceId ?? null, pinnedTypes: ds.pinnedTypes ?? null }).catch(() => {})
+  }, [ds, updateDS])
+
   // ── Rename dataset ──────────────────────────────────────────────────────────
   const openRename = useCallback(() => {
     if (!ds) return; setRenameName(ds.name); setRenameModal(true)
@@ -495,6 +515,8 @@ function Inner () {
               ds={ds}
               onRename={openRename}
               onDelete={deleteDataset}
+              onDuplicate={duplicateDataset}
+              onColorChange={changeColor}
               onSaveGraph={openSaveModal}
               onExportCSV={doExportCSV}
               onExportJSON={doExportJSON}

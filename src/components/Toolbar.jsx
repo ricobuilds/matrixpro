@@ -1,8 +1,58 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { useApp } from '../store/AppContext'
 import { detectColType } from '../lib/data'
-import { COL_TYPES } from '../lib/constants'
+import { PALETTES, COL_TYPES } from '../lib/constants'
 import s from './Toolbar.module.css'
+
+// ─── Color picker popover ─────────────────────────────────────────────────────
+function ColorPicker ({ current, onChange }) {
+  return (
+    <div className={s.colorPicker}>
+      {PALETTES[0].map(color => (
+        <button
+          key={color}
+          className={[s.colorSwatch, current === color && s.colorSwatchActive].filter(Boolean).join(' ')}
+          style={{ background: color }}
+          onClick={() => onChange(color)}
+          title={color}
+        >
+          {current === color && (
+            <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M1.5 5l2.5 2.5 4.5-5"/>
+            </svg>
+          )}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ─── Dataset ⋯ menu ───────────────────────────────────────────────────────────
+function DsMenu ({ onRename, onDuplicate, onDelete, onClose }) {
+  return (
+    <div className={s.dsMenu}>
+      <button className={s.dsMenuItem} onClick={() => { onRename(); onClose() }}>
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M11 2.5l2.5 2.5-8 8H3V10.5l8-8z"/>
+        </svg>
+        Rename
+      </button>
+      <button className={s.dsMenuItem} onClick={() => { onDuplicate(); onClose() }}>
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M5 11H3a1 1 0 01-1-1V3a1 1 0 011-1h7a1 1 0 011 1v2"/>
+        </svg>
+        Duplicate
+      </button>
+      <div className={s.dsMenuDivider} />
+      <button className={[s.dsMenuItem, s.dsMenuDanger].join(' ')} onClick={() => { onDelete(); onClose() }}>
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8l1-10"/>
+        </svg>
+        Delete
+      </button>
+    </div>
+  )
+}
 
 // ─── Column visibility dropdown ───────────────────────────────────────────────
 function ColMenu ({ ds }) {
@@ -11,7 +61,6 @@ function ColMenu ({ ds }) {
   const [search, setSearch] = useState('')
   const searchRef = useRef(null)
 
-  // Compute type badges once when the menu mounts — detectColType samples rows
   const colTypes = useMemo(
     () => Object.fromEntries(ds.cols.map(c => [c, detectColType(ds, c)])),
     [ds.id, ds.cols] // eslint-disable-line react-hooks/exhaustive-deps
@@ -105,54 +154,82 @@ function ExportMenu ({ onCSV, onJSON, onClose }) {
 }
 
 // ─── Main toolbar ─────────────────────────────────────────────────────────────
-export default function Toolbar ({ ds, onRename, onDelete, onSaveGraph, onExportCSV, onExportJSON, onGroup, onClearFilters }) {
+export default function Toolbar ({ ds, onRename, onDelete, onDuplicate, onColorChange, onSaveGraph, onExportCSV, onExportJSON, onGroup, onClearFilters }) {
   const { state, dispatch } = useApp()
   const isGraph = state.view === 'graph'
   const isSql   = state.view === 'sql'
   const isTable = state.view === 'table'
 
-  const [colMenuOpen,    setColMenuOpen]    = useState(false)
-  const [exportMenuOpen, setExportMenuOpen] = useState(false)
+  const [colMenuOpen,     setColMenuOpen]     = useState(false)
+  const [exportMenuOpen,  setExportMenuOpen]  = useState(false)
+  const [dsMenuOpen,      setDsMenuOpen]      = useState(false)
+  const [colorPickerOpen, setColorPickerOpen] = useState(false)
+
   const colBtnRef    = useRef(null)
   const exportBtnRef = useRef(null)
+  const dsBtnRef     = useRef(null)
+  const colorDotRef  = useRef(null)
 
   const hiddenCount = (ds.hiddenCols || []).length
   const filterCount = Object.keys(ds.filters || {}).length
+  const colCount    = ds.cols.length
 
-  // Filtered row count — recomputes only when filters or rows change
   const filteredCount = useMemo(() => {
     const fns = Object.values(ds.filters || {})
     if (!fns.length) return ds.rows.length
     return fns.reduce((rows, fn) => rows.filter(fn), ds.rows).length
   }, [ds.filters, ds.rows])
 
-  // Close col menu on outside click
+  // Outside-click handlers
   useEffect(() => {
     if (!colMenuOpen) return
-    const handler = e => {
-      if (colBtnRef.current && !colBtnRef.current.contains(e.target)) setColMenuOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    const h = e => { if (colBtnRef.current && !colBtnRef.current.contains(e.target)) setColMenuOpen(false) }
+    document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h)
   }, [colMenuOpen])
 
-  // Close export menu on outside click
   useEffect(() => {
     if (!exportMenuOpen) return
-    const handler = e => {
-      if (exportBtnRef.current && !exportBtnRef.current.contains(e.target)) setExportMenuOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    const h = e => { if (exportBtnRef.current && !exportBtnRef.current.contains(e.target)) setExportMenuOpen(false) }
+    document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h)
   }, [exportMenuOpen])
+
+  useEffect(() => {
+    if (!dsMenuOpen) return
+    const h = e => { if (dsBtnRef.current && !dsBtnRef.current.contains(e.target)) setDsMenuOpen(false) }
+    document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h)
+  }, [dsMenuOpen])
+
+  useEffect(() => {
+    if (!colorPickerOpen) return
+    const h = e => { if (colorDotRef.current && !colorDotRef.current.contains(e.target)) setColorPickerOpen(false) }
+    document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h)
+  }, [colorPickerOpen])
 
   return (
     <div className={s.bar}>
 
-      {/* ── Dataset identity ── */}
+      {/* ── Zone 1: Dataset identity ── */}
       <div className={s.meta}>
-        <span className={s.colorDot} style={{ background: ds.color }} />
+
+        {/* Clickable color dot → color picker */}
+        <div className={s.colorDotWrap} ref={colorDotRef}>
+          <button
+            className={s.colorDotBtn}
+            style={{ background: ds.color }}
+            onClick={() => setColorPickerOpen(v => !v)}
+            title="Change dataset colour"
+          />
+          {colorPickerOpen && (
+            <ColorPicker
+              current={ds.color}
+              onChange={color => { onColorChange(color); setColorPickerOpen(false) }}
+            />
+          )}
+        </div>
+
         <span className={s.name} title={ds.name}>{ds.name}</span>
+
+        {/* Stat pill: rows · cols */}
         <span className={s.pill}>
           {filterCount > 0 ? (
             <>
@@ -164,6 +241,11 @@ export default function Toolbar ({ ds, onRename, onDelete, onSaveGraph, onExport
             ds.rows.length.toLocaleString()
           )}
           {' '}rows
+          <span className={s.pillDot}>·</span>
+          {hiddenCount > 0 ? (
+            <><span className={s.pillFiltered}>{colCount - hiddenCount}</span><span className={s.pillSep}>/</span><span className={s.pillTotal}>{colCount}</span></>
+          ) : colCount}
+          {' '}cols
         </span>
 
         {filterCount > 0 && (
@@ -175,21 +257,31 @@ export default function Toolbar ({ ds, onRename, onDelete, onSaveGraph, onExport
           </button>
         )}
 
-        <button className={s.iconBtn} onClick={onRename} title="Rename dataset">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M11 2.5l2.5 2.5-8 8H3V10.5l8-8z" />
-          </svg>
-        </button>
-        <button className={[s.iconBtn, s.danger].join(' ')} onClick={onDelete} title="Delete dataset">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8l1-10" />
-          </svg>
-        </button>
+        {/* ⋯ dataset menu */}
+        <div className={s.dsMenuWrap} ref={dsBtnRef}>
+          <button
+            className={[s.moreBtn, dsMenuOpen && s.moreBtnOn].filter(Boolean).join(' ')}
+            onClick={() => setDsMenuOpen(v => !v)}
+            title="Dataset options"
+          >
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+              <circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/>
+            </svg>
+          </button>
+          {dsMenuOpen && (
+            <DsMenu
+              onRename={onRename}
+              onDuplicate={onDuplicate}
+              onDelete={onDelete}
+              onClose={() => setDsMenuOpen(false)}
+            />
+          )}
+        </div>
       </div>
 
       <div className={s.div} />
 
-      {/* ── View switcher ── */}
+      {/* ── Zone 2: View switcher ── */}
       <div className={s.viewSw}>
         <button
           className={[s.vbtn, isTable && s.active].filter(Boolean).join(' ')}
@@ -224,32 +316,11 @@ export default function Toolbar ({ ds, onRename, onDelete, onSaveGraph, onExport
         </button>
       </div>
 
-      {/* ── Axis selectors (graph view) ── */}
-      {isGraph && (
-        <div className={s.axBar}>
-          <span className={s.axLbl}>X</span>
-          <select
-            className={s.axSel}
-            value={state.axisX}
-            onChange={e => dispatch({ type: 'SET_AXIS', which: 'X', value: e.target.value })}
-          >
-            {ds.cols.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <div className={s.axDiv} />
-          <span className={s.axLbl}>Y</span>
-          <select
-            className={s.axSel}
-            value={state.axisY}
-            onChange={e => dispatch({ type: 'SET_AXIS', which: 'Y', value: e.target.value })}
-          >
-            {ds.cols.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-      )}
-
       <div className={s.sp} />
 
-      {/* ── Group ── */}
+      {/* ── Zone 3: Contextual actions ── */}
+
+      {/* Group */}
       {!isSql && (
         <button className={s.btn} onClick={onGroup} title="Group & aggregate">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
@@ -260,7 +331,7 @@ export default function Toolbar ({ ds, onRename, onDelete, onSaveGraph, onExport
         </button>
       )}
 
-      {/* ── Column visibility — table view only ── */}
+      {/* Column visibility — table only */}
       {isTable && (
         <div className={s.colWrap} ref={colBtnRef}>
           <button
@@ -283,7 +354,7 @@ export default function Toolbar ({ ds, onRename, onDelete, onSaveGraph, onExport
         </div>
       )}
 
-      {/* ── Filters toggle ── */}
+      {/* Filters toggle */}
       {!isSql && (
         <button
           className={[s.btn, state.panelOpen && s.btnOn].filter(Boolean).join(' ')}
@@ -300,7 +371,7 @@ export default function Toolbar ({ ds, onRename, onDelete, onSaveGraph, onExport
         </button>
       )}
 
-      {/* ── Save graph ── */}
+      {/* Save graph — graph view only */}
       {isGraph && (
         <button className={[s.btn, s.primary].join(' ')} onClick={onSaveGraph} title="Save graph (⌘S)">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
@@ -313,7 +384,7 @@ export default function Toolbar ({ ds, onRename, onDelete, onSaveGraph, onExport
 
       <div className={s.div} />
 
-      {/* ── Export dropdown ── */}
+      {/* Export dropdown */}
       <div className={s.exportWrap} ref={exportBtnRef}>
         <button
           className={[s.btn, exportMenuOpen && s.btnOn].filter(Boolean).join(' ')}

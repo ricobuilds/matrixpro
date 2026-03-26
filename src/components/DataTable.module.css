@@ -32,6 +32,13 @@
 .resizeHandle:hover::after,
 .resizeHandleActive::after { opacity: .6; }
 .thName    { display: flex; align-items: center; gap: 4px; overflow: hidden; }
+.colTypeBadge {
+  font-size: 9px; font-weight: 700; font-family: var(--m);
+  width: 14px; min-width: 14px; text-align: center;
+  border-radius: 3px; padding: 1.5px 0; flex-shrink: 0;
+  cursor: pointer; user-select: none; transition: filter var(--ease);
+}
+.colTypeBadge:hover { filter: brightness(1.25); }
 .thLabel   { font-size: 12px; font-weight: 500; color: var(--tx1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sortBtn   { cursor: pointer; color: var(--tx3); border-radius: 3px; padding: 1px 2px; font-size: 11px; flex-shrink: 0; transition: color var(--ease); }
 .sortBtn:hover, .sortOn { color: var(--ac2); }

@@ -110,7 +110,7 @@ function Inner () {
       if (!persistedIds.current.has(t.id)) {
         persistedIds.current.add(t.id)
         openStates.current.set(t.id, true)
-        window.MP.db.upsertDataset({ id: t.id, name: t.name, color: t.color, cols: t.cols, rows: t.rows, workspaceId: t.workspaceId ?? null }).catch(() => {})
+        window.MP.db.upsertDataset({ id: t.id, name: t.name, color: t.color, cols: t.cols, rows: t.rows, workspaceId: t.workspaceId ?? null, pinnedTypes: t.pinnedTypes ?? null }).catch(() => {})
       }
     })
   }, [state.tabs])
@@ -121,7 +121,7 @@ function Inner () {
     if (!isElectron) return
     state.tabs.forEach(t => {
       if (persistedIds.current.has(t.id)) {
-        window.MP.db.upsertDataset({ id: t.id, name: t.name, color: t.color, cols: t.cols, rows: t.rows, workspaceId: t.workspaceId ?? null }).catch(() => {})
+        window.MP.db.upsertDataset({ id: t.id, name: t.name, color: t.color, cols: t.cols, rows: t.rows, workspaceId: t.workspaceId ?? null, pinnedTypes: t.pinnedTypes ?? null }).catch(() => {})
       }
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -150,9 +150,10 @@ function Inner () {
     if (!isElectron || !ds) return
     clearTimeout(rowSaveTimer.current)
     rowSaveTimer.current = setTimeout(() => {
-      window.MP.db.upsertDataset({ id: ds.id, name: ds.name, color: ds.color, cols: ds.cols, rows: ds.rows }).catch(() => {})
+      window.MP.db.upsertDataset({ id: ds.id, name: ds.name, color: ds.color, cols: ds.cols, rows: ds.rows, workspaceId: ds.workspaceId ?? null, pinnedTypes: ds.pinnedTypes ?? null }).catch(() => {})
     }, 800)
-  }, [ds?.rows])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ds?.rows, ds?.pinnedTypes])
 
   // ── Persist open/close state changes to SQLite ──────────────────────────────
   useEffect(() => {
@@ -363,7 +364,7 @@ function Inner () {
   const confirmRename = useCallback(() => {
     if (!ds || !renameName.trim()) return
     updateDS(ds.id, { name: renameName.trim() })
-    if (isElectron) window.MP.db.upsertDataset({ id: ds.id, name: renameName.trim(), color: ds.color, cols: ds.cols, rows: ds.rows, workspaceId: ds.workspaceId ?? null }).catch(() => {})
+    if (isElectron) window.MP.db.upsertDataset({ id: ds.id, name: renameName.trim(), color: ds.color, cols: ds.cols, rows: ds.rows, workspaceId: ds.workspaceId ?? null, pinnedTypes: ds.pinnedTypes ?? null }).catch(() => {})
     setRenameModal(false)
     toast(`Renamed to "${renameName.trim()}"`, '✎')
   }, [ds, renameName, updateDS, toast])
@@ -442,7 +443,7 @@ function Inner () {
     newDs.rows        = []
     newDs.pinnedTypes = Object.fromEntries(cols.map(c => [c.name, c.type]))
     addTab(newDs)
-    if (isElectron) window.MP.db.upsertDataset({ id: newDs.id, name: newDs.name, color: newDs.color, cols: newDs.cols, rows: newDs.rows, workspaceId: null }).catch(() => {})
+    if (isElectron) window.MP.db.upsertDataset({ id: newDs.id, name: newDs.name, color: newDs.color, cols: newDs.cols, rows: newDs.rows, workspaceId: null, pinnedTypes: newDs.pinnedTypes ?? null }).catch(() => {})
     toast(`Created "${name}"`, '✓')
   }, [state.tabs.length, addTab, toast])
 

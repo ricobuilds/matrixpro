@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react'
 import { useApp } from '../store/AppContext'
 import { fmtCell, fmtN, detectColType, buildCatColorMap, parseDate, fmtDate, parseNumeric } from '../lib/data'
-import { PALETTES } from '../lib/constants'
+import { PALETTES, COL_TYPES, COL_TYPE_ORDER } from '../lib/constants'
 import s from './DataTable.module.css'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -152,6 +152,13 @@ export default function DataTable ({ ds, compact = false }) {
     })
     return out
   }, [ds, pal, colTypes])
+
+  // ── Cycle column type ────────────────────────────────────────────────────────
+  const cycleType = useCallback(col => {
+    const current = colTypes[col] || 'text'
+    const next    = COL_TYPE_ORDER[(COL_TYPE_ORDER.indexOf(current) + 1) % COL_TYPE_ORDER.length]
+    dispatch({ type: 'UPDATE_DS', id: ds.id, patch: { pinnedTypes: { ...(ds.pinnedTypes || {}), [col]: next } } })
+  }, [colTypes, ds.id, ds.pinnedTypes, dispatch])
 
   // ── Search ───────────────────────────────────────────────────────────────────
   const [searchOpen,  setSearchOpen]  = useState(false)
@@ -379,10 +386,17 @@ export default function DataTable ({ ds, compact = false }) {
                 } else {
                   metaEl = <><b>{new Set(vals).size}</b> unique</>
                 }
+                const tb = COL_TYPES[ct] || COL_TYPES.text
                 return (
                   <th key={col}>
                     <div className={s.thi}>
                       <div className={s.thName}>
+                        <span
+                          className={s.colTypeBadge}
+                          style={{ color: tb.color, background: tb.bg }}
+                          onClick={e => { e.stopPropagation(); cycleType(col) }}
+                          title={`Type: ${tb.title} — click to change`}
+                        >{tb.label}</span>
                         <span className={s.thLabel}>{col}</span>
                         <span
                           className={s.sortBtn + (isActive ? ' ' + s.sortOn : '')}

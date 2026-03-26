@@ -215,10 +215,20 @@ function Inner () {
       if ((e.metaKey || e.ctrlKey) && e.key === 's' && state.view === 'graph') { e.preventDefault(); openSaveModal() }
       if ((e.metaKey || e.ctrlKey) && e.key === 'e') { e.preventDefault(); doExportCSV() }
       if ((e.metaKey || e.ctrlKey) && e.key === 'o') { e.preventDefault(); triggerUpload() }
+      if (e.ctrlKey && e.key === 'Tab') {
+        e.preventDefault()
+        const openTabs = state.tabs.filter(t => t.open !== false)
+        if (openTabs.length < 2) return
+        const cur  = openTabs.findIndex(t => t.id === state.activeId)
+        const next = e.shiftKey
+          ? (cur - 1 + openTabs.length) % openTabs.length
+          : (cur + 1) % openTabs.length
+        dispatch({ type: 'SET_ACTIVE', id: openTabs[next].id })
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [state.view, ds])
+  }, [state.view, state.tabs, state.activeId, ds])
 
   // ── Paste-to-import ─────────────────────────────────────────────────────────
   useEffect(() => {

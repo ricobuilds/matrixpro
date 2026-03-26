@@ -93,6 +93,8 @@ npm run build:linux   # → release/Matrix Pro-2.0.0.AppImage
 |----------|-------------------------------------------|
 | ⌘O       | Open dataset file                         |
 | Paste    | Import clipboard CSV/TSV as new dataset   |
+| ⌃Tab     | Next open dataset                         |
+| ⌃⇧Tab    | Previous open dataset                     |
 | ⌘1       | Table view                                |
 | ⌘2       | Graph view                                |
 | ⌘3       | SQL Editor                                |

@@ -246,13 +246,15 @@ export default function DataTable ({ ds, compact = false }) {
 
   const commitEdit = useCallback((dsRowIdx, col, value) => {
     if (dsRowIdx < 0 || dsRowIdx >= ds.rows.length) return
+    dispatch({ type: 'PUSH_ROW_HISTORY', dsId: ds.id, rows: ds.rows })
     const newRows = ds.rows.map((r, i) => i === dsRowIdx ? { ...r, [col]: value } : r)
     dispatch({ type: 'UPDATE_DS', id: ds.id, patch: { rows: newRows } })
   }, [ds.rows, ds.id, dispatch])
 
   const addRow = useCallback((startCol) => {
-    const empty      = Object.fromEntries(ds.cols.map(c => [c, '']))
-    const newRows    = [...ds.rows, empty]
+    dispatch({ type: 'PUSH_ROW_HISTORY', dsId: ds.id, rows: ds.rows })
+    const empty       = Object.fromEntries(ds.cols.map(c => [c, '']))
+    const newRows     = [...ds.rows, empty]
     const newDsRowIdx = newRows.length - 1
     dispatch({ type: 'UPDATE_DS', id: ds.id, patch: { rows: newRows } })
     setTimeout(() => {
@@ -262,6 +264,7 @@ export default function DataTable ({ ds, compact = false }) {
   }, [ds.rows, ds.cols, ds.id, dispatch, visibleCols])
 
   const deleteRow = useCallback((dsRowIdx) => {
+    dispatch({ type: 'PUSH_ROW_HISTORY', dsId: ds.id, rows: ds.rows })
     const newRows = ds.rows.filter((_, i) => i !== dsRowIdx)
     dispatch({ type: 'UPDATE_DS', id: ds.id, patch: { rows: newRows } })
     setEditingCell(prev => prev?.dsRowIdx === dsRowIdx ? null : prev)
@@ -274,6 +277,7 @@ export default function DataTable ({ ds, compact = false }) {
 
     // Special case: last row + down → commit + add new row atomically
     if (dir === 'down' && ri >= searchedRows.length - 1) {
+      dispatch({ type: 'PUSH_ROW_HISTORY', dsId: ds.id, rows: ds.rows })
       const updatedRows = ds.rows.map((r, i) => i === dsRowIdx ? { ...r, [col]: newVal } : r)
       const empty       = Object.fromEntries(ds.cols.map(c => [c, '']))
       const newRows     = [...updatedRows, empty]
@@ -310,15 +314,19 @@ export default function DataTable ({ ds, compact = false }) {
     }
   }, [commitEdit, ds.rows, ds.cols, ds.id, dispatch, visibleCols, searchedRows])
 
-  // ⌘↵ to add row; Escape to exit edit
+  // ⌘↵ to add row; ⌘Z to undo; Escape to exit edit
   useEffect(() => {
     const handler = e => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); addRow() }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey && !editingCell) {
+        e.preventDefault()
+        dispatch({ type: 'UNDO_ROWS', dsId: ds.id })
+      }
       if (e.key === 'Escape' && editingCell && !searchOpen) setEditingCell(null)
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [addRow, editingCell, searchOpen])
+  }, [addRow, editingCell, searchOpen, ds.id, dispatch])
 
   // ── Render ───────────────────────────────────────────────────────────────────
   const sortBy      = col => dispatch({ type: 'SET_SORT', col })

@@ -5,6 +5,7 @@ import { makeDS, genHousing, genWorld, genSales, genStocks, uid } from '../lib/d
 const init = {
   tabs:       [],        // dataset objects
   workspaces: [],        // { id, name }[]
+  rowHistory: {},        // { [dsId]: rows[][] } — undo stack, max 50 per dataset
   activeId:   null,      // active tab id
   view:       'table',   // 'table' | 'graph' | 'sql'
   panelOpen:  false,
@@ -141,6 +142,25 @@ function reducer (state, action) {
 
     case 'RESTORE_WORKSPACES':
       return { ...state, workspaces: action.workspaces }
+
+    case 'PUSH_ROW_HISTORY': {
+      const prev   = state.rowHistory[action.dsId] || []
+      const capped = prev.length >= 50 ? prev.slice(1) : prev
+      return {
+        ...state,
+        rowHistory: { ...state.rowHistory, [action.dsId]: [...capped, action.rows] },
+      }
+    }
+
+    case 'UNDO_ROWS': {
+      const stack = state.rowHistory[action.dsId] || []
+      if (!stack.length) return state
+      return {
+        ...state,
+        tabs:       state.tabs.map(t => t.id === action.dsId ? { ...t, rows: stack[stack.length - 1] } : t),
+        rowHistory: { ...state.rowHistory, [action.dsId]: stack.slice(0, -1) },
+      }
+    }
 
     default:
       return state

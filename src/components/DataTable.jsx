@@ -661,15 +661,29 @@ export default function DataTable ({ ds, compact = false }) {
                     onClick={toggleSelectAll}
                     title={allVisible ? 'Deselect all' : 'Select all visible rows'}
                   >
-                    {allVisible ? (
-                      <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M1.5 5.5l2.5 2.5 4.5-5"/>
-                      </svg>
-                    ) : someVisible ? (
-                      <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                        <path d="M2 5h6"/>
-                      </svg>
-                    ) : '#'}
+                    {/* # label — hidden when state is active or on hover (CSS) */}
+                    <span className={s.selAllHash}>#</span>
+                    {/* Icon layer — circle at rest, dash/check when active */}
+                    <span className={s.selAllIcon}>
+                      {allVisible ? (
+                        /* Filled checkbox — all selected */
+                        <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                          <rect x="1" y="1" width="12" height="12" rx="3" fill="currentColor" opacity=".18" stroke="currentColor" strokeWidth="1.4"/>
+                          <path d="M3.5 7l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      ) : someVisible ? (
+                        /* Partial — dash */
+                        <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                          <rect x="1" y="1" width="12" height="12" rx="3" fill="currentColor" opacity=".12" stroke="currentColor" strokeWidth="1.4"/>
+                          <path d="M4 7h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                        </svg>
+                      ) : (
+                        /* Empty checkbox — default hover state */
+                        <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                          <rect x="1" y="1" width="12" height="12" rx="3" stroke="currentColor" strokeWidth="1.4"/>
+                        </svg>
+                      )}
+                    </span>
                   </button>
                 </div>
               </th>

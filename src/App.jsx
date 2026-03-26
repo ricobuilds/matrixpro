@@ -72,8 +72,9 @@ function Inner () {
   const fileInputRef = useRef(null)
   const didInit      = useRef(false)
   const rowSaveTimer = useRef(null)
-  const persistedIds = useRef(new Set())   // IDs upserted to DB
-  const openStates   = useRef(new Map())   // id → last-persisted open state
+  const persistedIds  = useRef(new Set())   // IDs upserted to DB
+  const openStates    = useRef(new Map())   // id → last-persisted open state
+  const persistedWsIds = useRef(new Set())  // workspace IDs upserted to DB
 
   const ds = getDS()
 
@@ -84,8 +85,11 @@ function Inner () {
     if (!isElectron) return   // web: no persistence, start with Welcome screen
     ;(async () => {
       try {
-        const saved = await window.MP.db.loadDatasets()
-        if (!saved.length) return  // empty DB → Welcome screen
+        const [saved, savedWs] = await Promise.all([
+          window.MP.db.loadDatasets(),
+          window.MP.db.loadWorkspaces(),
+        ])
+        if (!saved.length && !savedWs.length) return  // empty DB → Welcome screen
         saved.forEach(r => {
           persistedIds.current.add(r.id)
           openStates.current.set(r.id, r.open !== false)
@@ -94,6 +98,7 @@ function Inner () {
           type: 'RESTORE_TABS',
           tabs: saved.map(r => ({ ...r, filters: {}, filterLabels: {}, savedGraphs: [] })),
         })
+        if (savedWs.length) dispatch({ type: 'RESTORE_WORKSPACES', workspaces: savedWs })
       } catch {}  // on error → Welcome screen
     })()
   }, [])
@@ -105,10 +110,40 @@ function Inner () {
       if (!persistedIds.current.has(t.id)) {
         persistedIds.current.add(t.id)
         openStates.current.set(t.id, true)
-        window.MP.db.upsertDataset({ id: t.id, name: t.name, color: t.color, cols: t.cols, rows: t.rows }).catch(() => {})
+        window.MP.db.upsertDataset({ id: t.id, name: t.name, color: t.color, cols: t.cols, rows: t.rows, workspaceId: t.workspaceId ?? null }).catch(() => {})
       }
     })
   }, [state.tabs])
+
+  // ── Persist workspace assignments when tabs move between workspaces ──────────
+  const wsAssignKey = state.tabs.map(t => `${t.id}:${t.workspaceId ?? ''}`).join(',')
+  useEffect(() => {
+    if (!isElectron) return
+    state.tabs.forEach(t => {
+      if (persistedIds.current.has(t.id)) {
+        window.MP.db.upsertDataset({ id: t.id, name: t.name, color: t.color, cols: t.cols, rows: t.rows, workspaceId: t.workspaceId ?? null }).catch(() => {})
+      }
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wsAssignKey])
+
+  // ── Persist workspace create / rename / delete ───────────────────────────────
+  useEffect(() => {
+    if (!isElectron) return
+    const currentIds = new Set(state.workspaces.map(w => w.id))
+    // delete workspaces that were removed
+    persistedWsIds.current.forEach(id => {
+      if (!currentIds.has(id)) {
+        window.MP.db.deleteWorkspace(id).catch(() => {})
+        persistedWsIds.current.delete(id)
+      }
+    })
+    // upsert new or updated workspaces
+    state.workspaces.forEach((ws, i) => {
+      persistedWsIds.current.add(ws.id)
+      window.MP.db.upsertWorkspace({ id: ws.id, name: ws.name, sort: i }).catch(() => {})
+    })
+  }, [state.workspaces])
 
   // ── Debounced row save when cells are edited ────────────────────────────────
   useEffect(() => {
@@ -328,7 +363,7 @@ function Inner () {
   const confirmRename = useCallback(() => {
     if (!ds || !renameName.trim()) return
     updateDS(ds.id, { name: renameName.trim() })
-    if (isElectron) window.MP.db.upsertDataset({ id: ds.id, name: renameName.trim(), color: ds.color, cols: ds.cols, rows: ds.rows }).catch(() => {})
+    if (isElectron) window.MP.db.upsertDataset({ id: ds.id, name: renameName.trim(), color: ds.color, cols: ds.cols, rows: ds.rows, workspaceId: ds.workspaceId ?? null }).catch(() => {})
     setRenameModal(false)
     toast(`Renamed to "${renameName.trim()}"`, '✎')
   }, [ds, renameName, updateDS, toast])
@@ -407,7 +442,7 @@ function Inner () {
     newDs.rows        = []
     newDs.pinnedTypes = Object.fromEntries(cols.map(c => [c.name, c.type]))
     addTab(newDs)
-    if (isElectron) window.MP.db.upsertDataset({ id: newDs.id, name: newDs.name, color: newDs.color, cols: newDs.cols, rows: newDs.rows }).catch(() => {})
+    if (isElectron) window.MP.db.upsertDataset({ id: newDs.id, name: newDs.name, color: newDs.color, cols: newDs.cols, rows: newDs.rows, workspaceId: null }).catch(() => {})
     toast(`Created "${name}"`, '✓')
   }, [state.tabs.length, addTab, toast])
 

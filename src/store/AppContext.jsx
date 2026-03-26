@@ -139,6 +139,9 @@ function reducer (state, action) {
       }
     }
 
+    case 'RESTORE_WORKSPACES':
+      return { ...state, workspaces: action.workspaces }
+
     default:
       return state
   }

@@ -21,6 +21,9 @@ contextBridge.exposeInMainWorld('MP', {
     saveGraph:     (dsId, t, cfg)   => ipcRenderer.invoke('db:saveGraph', { datasetId: dsId, title: t, config: cfg }),
     loadGraphs:    (dsId)           => ipcRenderer.invoke('db:loadGraphs', dsId),
     deleteGraph:   (id)             => ipcRenderer.invoke('db:deleteGraph', id),
+    upsertWorkspace: (ws)           => ipcRenderer.invoke('db:upsertWorkspace', ws),
+    deleteWorkspace: (id)           => ipcRenderer.invoke('db:deleteWorkspace', id),
+    loadWorkspaces:  ()             => ipcRenderer.invoke('db:loadWorkspaces'),
   },
 
   on: (ch, fn) => {

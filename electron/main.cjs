@@ -29,13 +29,14 @@ async function openDB () {
 
     db.run(`
       CREATE TABLE IF NOT EXISTS datasets (
-        id    TEXT PRIMARY KEY,
-        name  TEXT NOT NULL,
-        color TEXT NOT NULL,
-        cols  TEXT NOT NULL,
-        data  TEXT NOT NULL,
-        ts    INTEGER NOT NULL,
-        open  INTEGER NOT NULL DEFAULT 1
+        id           TEXT PRIMARY KEY,
+        name         TEXT NOT NULL,
+        color        TEXT NOT NULL,
+        cols         TEXT NOT NULL,
+        data         TEXT NOT NULL,
+        ts           INTEGER NOT NULL,
+        open         INTEGER NOT NULL DEFAULT 1,
+        workspace_id TEXT
       );
       CREATE TABLE IF NOT EXISTS graphs (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,9 +45,15 @@ async function openDB () {
         config     TEXT NOT NULL,
         ts         INTEGER NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS workspaces (
+        id   TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        sort INTEGER NOT NULL DEFAULT 0
+      );
     `)
-    // migrate: add open column if it doesn't exist yet
-    try { db.run('ALTER TABLE datasets ADD COLUMN open INTEGER DEFAULT 1') } catch {}
+    // migrations for older DBs
+    try { db.run('ALTER TABLE datasets ADD COLUMN open         INTEGER DEFAULT 1') } catch {}
+    try { db.run('ALTER TABLE datasets ADD COLUMN workspace_id TEXT') }             catch {}
     flush()
   } catch (e) {
     console.warn('[DB] sql.js unavailable:', e.message)
@@ -61,11 +68,11 @@ function flush () {
 }
 
 // ─── IPC handlers ────────────────────────────────────────────────────────────
-ipcMain.handle('db:upsertDataset', (_, { id, name, color, cols, rows }) => {
+ipcMain.handle('db:upsertDataset', (_, { id, name, color, cols, rows, workspaceId = null }) => {
   if (!db) return false
   db.run(
-    'INSERT OR REPLACE INTO datasets (id,name,color,cols,data,ts,open) VALUES (?,?,?,?,?,?,?)',
-    [id, name, color, JSON.stringify(cols), JSON.stringify(rows), Date.now(), 1]
+    'INSERT OR REPLACE INTO datasets (id,name,color,cols,data,ts,open,workspace_id) VALUES (?,?,?,?,?,?,?,?)',
+    [id, name, color, JSON.stringify(cols), JSON.stringify(rows), Date.now(), 1, workspaceId ?? null]
   )
   flush()
   return true
@@ -80,11 +87,38 @@ ipcMain.handle('db:setDatasetOpen', (_, { id, open }) => {
 
 ipcMain.handle('db:loadDatasets', () => {
   if (!db) return []
-  const stmt = db.prepare('SELECT id,name,color,cols,data,COALESCE(open,1) as open FROM datasets ORDER BY ts ASC')
+  const stmt = db.prepare('SELECT id,name,color,cols,data,COALESCE(open,1) as open,workspace_id FROM datasets ORDER BY ts ASC')
   const out  = []
   while (stmt.step()) {
     const r = stmt.getAsObject()
-    out.push({ id: r.id, name: r.name, color: r.color, cols: JSON.parse(r.cols), rows: JSON.parse(r.data), open: r.open !== 0 })
+    out.push({ id: r.id, name: r.name, color: r.color, cols: JSON.parse(r.cols), rows: JSON.parse(r.data), open: r.open !== 0, workspaceId: r.workspace_id ?? null })
+  }
+  stmt.free()
+  return out
+})
+
+ipcMain.handle('db:upsertWorkspace', (_, { id, name, sort = 0 }) => {
+  if (!db) return false
+  db.run('INSERT OR REPLACE INTO workspaces (id,name,sort) VALUES (?,?,?)', [id, name, sort])
+  flush()
+  return true
+})
+
+ipcMain.handle('db:deleteWorkspace', (_, id) => {
+  if (!db) return false
+  db.run('DELETE FROM workspaces WHERE id=?', [id])
+  db.run('UPDATE datasets SET workspace_id=NULL WHERE workspace_id=?', [id])
+  flush()
+  return true
+})
+
+ipcMain.handle('db:loadWorkspaces', () => {
+  if (!db) return []
+  const stmt = db.prepare('SELECT id,name,sort FROM workspaces ORDER BY sort ASC')
+  const out  = []
+  while (stmt.step()) {
+    const r = stmt.getAsObject()
+    out.push({ id: r.id, name: r.name })
   }
   stmt.free()
   return out

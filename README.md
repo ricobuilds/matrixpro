@@ -35,13 +35,29 @@ npm run build:linux   # → release/Matrix Pro-2.0.0.AppImage
 ### Datasets
 - Import `.csv` and `.tsv` files via drag & drop or **⌘O**
 - 4 built-in sample datasets (CA Housing, World Population, Sales '23, Tech Stocks)
+- **Create blank datasets from scratch** — define column names and types upfront via the **+** button
+- 5 column types: **Text · Number · Date · Boolean · Category** — auto-detected on import, overridable per column
 - Closing a dataset hides it — it stays in the sidebar and can be reopened
 - Permanent deletion via the toolbar trash icon
-- Datasets and saved graphs are persisted to SQLite on Electron
+- Datasets, saved graphs, and workspace assignments are persisted to SQLite on Electron
+
+### Workspaces
+- Organise datasets into named workspace groups in the sidebar
+- Create a workspace with **+ New workspace** at the bottom of the sidebar
+- Collapse or expand each workspace section
+- **⋯** menu on each workspace: inline rename or delete (datasets fall back to Uncategorized on delete)
+- Move any dataset to a workspace via the folder icon that appears on hover
+- Workspaces and assignments survive app restarts — stored in SQLite alongside datasets
 
 ### Table view
-- Sortable columns, formatted numbers, categorical value pills
+- Sortable columns, formatted numbers, date parsing, and categorical value pills
+- **Inline cell editing** — double-click any cell to edit; Tab / Enter to move to the next cell, Esc to cancel
+- Numeric columns reject non-numeric input with a shake animation
+- Add rows with **⌘↵** or the footer button; delete rows by hovering the row number and clicking ×
+- Category columns auto-assign distinct colours to each unique value
+- Boolean columns render as green/red pills
 - Active filters shown as chips with one-click removal
+- Column visibility toggle — hide/show individual columns via the toolbar
 - Group & aggregate — create a new summarised dataset by category
 
 ### Graph view
@@ -56,7 +72,7 @@ npm run build:linux   # → release/Matrix Pro-2.0.0.AppImage
 - Full in-browser SQL powered by sql.js (WebAssembly)
 - Every open dataset is automatically loaded as a queryable table
 - Cross-dataset `JOIN`s supported
-- Schema sidebar with collapsible tables and column type indicators — click any name to insert it
+- Schema sidebar with collapsible tables and column type badges — click any name to insert it
 - `⌘↵` to run · Tab to indent · results show row count and execution time
 - **Open as dataset** — turn any query result into a new tab
 
@@ -68,16 +84,18 @@ npm run build:linux   # → release/Matrix Pro-2.0.0.AppImage
 
 ## Keyboard shortcuts
 
-| Shortcut | Action              |
-|----------|---------------------|
-| ⌘O       | Open dataset        |
-| ⌘1       | Table view          |
-| ⌘2       | Graph view          |
-| ⌘3       | SQL Editor          |
-| ⌘\\      | Toggle filter panel |
-| ⌘S       | Save current graph  |
-| ⌘E       | Export CSV          |
-| Esc      | Close modal         |
+| Shortcut | Action                        |
+|----------|-------------------------------|
+| ⌘O       | Open dataset                  |
+| ⌘1       | Table view                    |
+| ⌘2       | Graph view                    |
+| ⌘3       | SQL Editor                    |
+| ⌘\\      | Toggle filter panel           |
+| ⌘S       | Save current graph            |
+| ⌘E       | Export CSV                    |
+| ⌘↵       | Add row (in table view)       |
+| ⌘↵       | Run query (in SQL editor)     |
+| Esc      | Close modal / cancel edit     |
 
 ---
 
@@ -100,7 +118,7 @@ Click **Generate** in the Graph → AI Insights panel.
 
 ## Data persistence
 
-Datasets and saved graphs are stored in SQLite at:
+All app data is stored in a single SQLite file:
 
 | Platform | Location |
 |----------|----------|
@@ -108,4 +126,4 @@ Datasets and saved graphs are stored in SQLite at:
 | Windows  | `%APPDATA%\matrix-pro\matrix-pro.db` |
 | Linux    | `~/.config/matrix-pro/matrix-pro.db` |
 
-Data is restored automatically on next launch. Deleting all datasets returns the app to a clean Welcome screen.
+The database stores datasets (rows, columns, open/close state), saved graph configurations, and workspace definitions and assignments. Everything is restored automatically on next launch. Deleting all datasets returns the app to the Welcome screen.
